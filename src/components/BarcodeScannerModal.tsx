@@ -66,7 +66,7 @@ export function BarcodeScannerModal({
       onRequestClose={onClose}
     >
       <View style={styles.root}>
-        {permission?.granted ? (
+        {visible && permission?.granted ? (
           <CameraView
             style={StyleSheet.absoluteFill}
             facing="back"
