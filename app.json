@@ -2,7 +2,7 @@
   "expo": {
     "name": "TasteRank",
     "slug": "tasterank",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "scheme": "tasterank",
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.tasterank.app",
-      "versionCode": 1,
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundColor": "#101318",
@@ -46,6 +46,14 @@
           "photosPermission": "TasteRank uses your photos to attach a picture to a rating.",
           "cameraPermission": "TasteRank uses your camera to attach a photo to a rating.",
           "microphonePermission": false
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "TasteRank uses your camera to scan product barcodes.",
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": true
         }
       ]
     ]

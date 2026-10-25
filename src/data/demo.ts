@@ -165,6 +165,8 @@ export function createDemoRatings(): Rating[] {
       score: seed.score,
       review: seed.review,
       photoUri: null,
+      barcode: null,
+      source: 'manual',
       createdAt,
       updatedAt: createdAt,
       isDemo: true,

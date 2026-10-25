@@ -8,11 +8,23 @@ import React, {
   useState,
   type ReactNode,
 } from 'react';
-import type { CategoryId, Rating, RatingInput } from '../types';
+import type { CategoryId, ProductSource, Rating, RatingInput } from '../types';
 import { loadRatings, saveRatings } from '../lib/storage';
 import { deletePhoto, persistPhoto } from '../lib/photos';
 import { createDemoRatings } from '../data/demo';
 import { roundScore, uid } from '../lib/utils';
+import { findDuplicateRating, normalizeBarcode } from '../lib/productIdentity';
+
+/** Thrown when a barcode or product identity is already in the collection. */
+export class DuplicateRatingError extends Error {
+  existing: Rating;
+
+  constructor(existing: Rating) {
+    super(`You already rated ${existing.name}.`);
+    this.name = 'DuplicateRatingError';
+    this.existing = existing;
+  }
+}
 
 interface RatingsContextValue {
   ratings: Rating[];
@@ -36,6 +48,8 @@ interface NormalizedInput {
   score: number;
   review: string;
   photoUri: string | null;
+  barcode: string | null;
+  source: ProductSource;
 }
 
 function normalize(input: RatingInput): NormalizedInput {
@@ -47,6 +61,8 @@ function normalize(input: RatingInput): NormalizedInput {
     score: roundScore(input.score),
     review: (input.review ?? '').trim(),
     photoUri: input.photoUri ?? null,
+    barcode: normalizeBarcode(input.barcode),
+    source: input.source === 'openfoodfacts' ? 'openfoodfacts' : 'manual',
   };
 }
 
@@ -87,9 +103,12 @@ export function RatingsProvider({ children }: { children: ReactNode }) {
 
   const addRating = useCallback(
     async (input: RatingInput): Promise<Rating> => {
+      const fields = normalize(input);
+      const duplicate = findDuplicateRating(ratingsRef.current, fields);
+      if (duplicate) throw new DuplicateRatingError(duplicate);
+
       const id = uid();
       const now = new Date().toISOString();
-      const fields = normalize(input);
       let photoUri: string | null = null;
       if (fields.photoUri) {
         try {
@@ -112,6 +131,11 @@ export function RatingsProvider({ children }: { children: ReactNode }) {
       if (!existing) throw new Error('That rating no longer exists.');
 
       const fields = normalize(input);
+      if (input.barcode === undefined) fields.barcode = existing.barcode;
+      if (input.source === undefined) fields.source = existing.source;
+      const duplicate = findDuplicateRating(ratingsRef.current, fields, id);
+      if (duplicate) throw new DuplicateRatingError(duplicate);
+
       let photoUri = existing.photoUri;
       const incomingPhoto = fields.photoUri ?? null;
 

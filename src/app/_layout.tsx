@@ -54,6 +54,10 @@ export default function RootLayout(): React.JSX.Element | null {
               name="edit/[id]"
               options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
             />
+            <Stack.Screen
+              name="data-credits"
+              options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
+            />
           </Stack>
         </ToastProvider>
       </RatingsProvider>

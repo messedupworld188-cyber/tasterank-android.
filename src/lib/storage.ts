@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { CategoryId, Rating } from '../types';
 import { CATEGORIES } from '../constants/categories';
+import { normalizeBarcode } from './productIdentity';
 
 const STORAGE_KEY = '@tasterank/ratings:v1';
 
@@ -34,6 +35,8 @@ function sanitize(raw: unknown): Rating | null {
     score: Number.isFinite(score) ? Math.min(10, Math.max(0, Math.round(score * 10) / 10)) : 0,
     review: typeof record.review === 'string' ? record.review : '',
     photoUri: typeof record.photoUri === 'string' ? record.photoUri : null,
+    barcode: typeof record.barcode === 'string' ? normalizeBarcode(record.barcode) : null,
+    source: record.source === 'openfoodfacts' ? 'openfoodfacts' : 'manual',
     createdAt,
     updatedAt:
       typeof record.updatedAt === 'string' && !Number.isNaN(Date.parse(record.updatedAt))

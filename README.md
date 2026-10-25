@@ -2,7 +2,7 @@
 
 A native Android app for rating and ranking energy drinks, protein bars, snacks, restaurants and anything else you try. Built with Expo SDK 58, React Native 0.88 and TypeScript — not a website or WebView wrapper.
 
-Every rating saves on-device, ranking itself automatically. No login, no backend, no paid API, fully offline.
+Ratings, reviews and photos save on-device and rank themselves automatically. Version 1.1 adds real product discovery: search Open Food Facts by name, brand or flavor, or scan a barcode with the camera, then rate the product. No login, no backend, no paid API.
 
 ## Design
 
@@ -17,11 +17,40 @@ Every rating saves on-device, ranking itself automatically. No login, no backend
 | --- | --- |
 | **Home** | Greeting, your #1 pick, rating/average/category stats, favourite category, top-rated carousel, recent ratings, quick add |
 | **Rankings** | Live leaderboard with numbered positions, product search, category filter, four sort modes, share-as-text |
-| **Rate** | Product name, brand, flavour, category, score 0.0–10.0 (0.1 steps), optional photo from camera or library, written review |
-| **Item details** | Full-bleed photo or category artwork, score, verdict, review, dates, working edit/delete/share |
+| **Rate** | **Product search first:** real Open Food Facts results, barcode scanner, manual-entry fallback. Selecting a product fills the rating form; score 0.0–10.0 (0.1 steps), custom photo, written review |
+| **Item details** | Full-bleed photo or category artwork, score, verdict, review, barcode, dates, working edit/delete/share |
 | **Edit** | Same form pre-filled, plus delete, presented as a native modal |
 | **Insights** | Totals, averages, score distribution, category averages, top-rated items, favourite category |
-| **Settings** | Load/remove demo ratings, share rankings, delete all data, storage and offline notes |
+| **Settings** | Demo data, share rankings, delete all data, Open Food Facts attribution, storage and offline notes |
+| **Product data** | Attribution and licensing for Open Food Facts, API usage, cache policy and rate limits |
+
+## Product search and barcode scanning
+
+- **Source:** [Open Food Facts](https://world.openfoodfacts.org), a collaborative open database. Full-text search uses the documented [Search-a-licious API](https://search.openfoodfacts.org/docs); barcode lookups use the current [v3 product API](https://openfoodfacts.github.io/openfoodfacts-server/api/).
+- **Search:** runs only when you submit a query, never as you type. This follows the published rule against search-as-you-type. Results are capped at 20 and show the real product image, name, brand, variant/flavor when the database has one, quantity and category.
+- **Barcode scanning:** `expo-camera` with EAN-8, EAN-13, UPC-A, UPC-E, Code 128, Code 39 and ITF-14 support. A 12-digit UPC-A is canonicalized to its 13-digit EAN form before lookup.
+- **Category inference:** Open Food Facts tags (and well-known energy brands) map into TasteRank's existing categories; the user can always change the category on the form.
+- **Duplicate protection:** a product is identified by barcode first, otherwise by normalized brand + name + flavor. Both the search list and the save path block duplicates and offer to open the existing rating. Changing a rating cannot collide with another saved product.
+- **Photos:** remote front-of-pack images are downloaded into the app's private `rating-photos/` directory when a rating is saved, so they survive restarts and offline use. If the download fails, the remote URL is kept as a fallback, and a failed image shows a category placeholder instead of a broken box.
+- **Manual entry:** always available, including from “no results” and from a barcode that is not in the database. A scanned barcode is kept on the manual rating, so scanning the same package later still detects the duplicate.
+- **Offline:** ratings and local photos always work. Search results are cached for 24 hours and barcode lookups for 7 days; stale cached results are shown with an offline notice when the network fails. With no cache, the app explains the failure and offers manual entry.
+- **Errors:** rate limits, timeouts, 5xx responses, not-found barcodes and malformed responses are handled separately, with a retry action where useful.
+- **No fake data:** every result shown in the finished app comes from Open Food Facts. Demo ratings remain a separate, clearly tagged, removable sample collection that is ignored by duplicate checks.
+
+### Rate limits and caching
+
+Open Food Facts documents **10 search requests/minute/IP** and **15 product reads/minute/IP**. TasteRank enforces 6.5 seconds between searches and 4.5 seconds between barcode lookups, honors `Retry-After` on HTTP 429, and caches:
+
+- search queries: 24 hours, bounded to 40 entries
+- barcode products: 7 days, bounded to 60 entries
+
+The cache is best-effort AsyncStorage and never touches the ratings envelope. If the cache is full, the oldest entries are removed.
+
+### Attribution and licensing
+
+Product data is © Open Food Facts contributors and is available under the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/1-0/). Individual database contents are available under the Database Contents License. Product images are available under [Creative Commons Attribution-ShareAlike](https://creativecommons.org/licenses/by-sa/4.0/). TasteRank is independent and not endorsed by Open Food Facts.
+
+Attribution appears under the search results, on the selected product form, on item details for Open Food Facts products, and in the **Product data** screen, which links to the source, terms, ODbL, CC BY-SA and API documentation. The API documentation asks production apps to identify themselves with a custom User-Agent (TasteRank sends `TasteRank/1.1.0` plus the repository URL) and to submit its API usage form.
 
 ## Project structure
 
@@ -33,19 +62,23 @@ src/
     item/[id].tsx         Item details
     edit/[id].tsx         Edit modal
     settings.tsx          Settings modal
-  components/             Reusable UI (buttons, chips, cards, score controls, form, cards)
+    data-credits.tsx      Open Food Facts attribution modal
+  components/             Product search, result rows, scanner, form, cards
     ui/                   Design-system primitives
   constants/              Theme tokens and category metadata
   data/demo.ts            Removable demo ratings
-  lib/                    Storage, photo persistence, stats, search/sort, share, haptics
+  lib/                    Storage, photo persistence, OFF client, caches,
+                          duplicate identity, stats, share, haptics
   store/RatingsProvider.tsx  App-wide ratings store backed by AsyncStorage
-  types.ts                Rating model
+  types.ts                Rating and product models
 ```
 
-## Persistence
+## Persistence and data model
 
 - Ratings are stored as a versioned JSON envelope in AsyncStorage under `@tasterank/ratings:v1`, written after every change. Reading is defensive: corrupt or partial data is discarded per-entry instead of crashing.
-- Picked photos are copied into the app's private documents directory (`rating-photos/`) when a rating is saved, so they survive restarts and gallery cleanup. Replaced or deleted ratings have their photo files removed too.
+- Ratings now also carry an optional `barcode` and a `source` (`manual` or `openfoodfacts`). Older saved ratings load unchanged with no barcode and manual source, so upgrading does not lose any ratings.
+- Picked photos are copied and Open Food Facts photos are downloaded into the app's private documents directory (`rating-photos/`) when a rating is saved. Replaced or deleted ratings have their photo files removed.
+- Search caches live under separate `@tasterank/off-search:v2:*` and `@tasterank/off-product:v2:*` keys.
 - Demo ratings are tagged and can be removed in Settings without touching real ratings.
 - Uninstalling the app removes its private storage.
 
@@ -55,54 +88,38 @@ src/
 npm install
 npx expo start          # scan the QR code with Expo Go (SDK 58)
 npm run typecheck       # tsc --noEmit
-npx expo-doctor         # 20/20 checks
+npx expo-doctor         # dependency and config checks
 npx expo export --platform android --output-dir /tmp/tasterank-export
 ```
 
-All four checks pass in this repository. The Android Metro bundle exports successfully (Hermes bytecode, ~3.1 MB) and the web bundle exports too, which confirms every route, asset and native module resolves.
-
-Automated logic checks cover demo data integrity, average/statistics math, score rounding and clamping, distribution buckets, search across name/brand/flavour/review/category, every sort mode, and favourite-category selection. Interactive native behaviour (haptics, camera capture, native share sheet) still needs a real device.
+Expo Go includes the camera module, but a new **development build or preview APK** is still required because the previous APK predates `expo-camera`.
 
 ## Android build (EAS)
 
-`app.json` is configured for `com.tasterank.app`, version `1.0.0`, versionCode `1`, adaptive icon, splash screen and Android camera/photo permissions.
+`app.json` is configured for `com.tasterank.app`, version `1.1.0`, versionCode `2`, adaptive icon, splash screen, photo/camera permissions and the `expo-camera` config plugin. The preview APK and production AAB profiles are unchanged.
 
 `eas.json` has:
 
 - `preview` — **APK** with internal distribution, for sideloading on your phone
 - `production` — **AAB**, version auto-increment, for Google Play later
 
-### Build the APK
+### Build the APK from GitHub Actions (no terminal needed)
 
-An Expo account and a one-time EAS project link are required. In a terminal with network access:
+`.github/workflows/build-tasterank-apk.yml` defines **Build TasteRank APK**:
+
+1. Open the repository on GitHub → **Actions** → **Build TasteRank APK** → **Run workflow** (branch `main`).
+2. The job authenticates with the repository's `EXPO_TOKEN` secret, links the EAS project on the first run, and EAS automatically generates and stores the Android keystore.
+3. It queues the preview build with `eas build --platform android --profile preview --non-interactive --no-wait`.
+4. Open the build link in the run summary on your phone. Wait for EAS to finish, then download and install the APK (allow “install unknown apps” once).
+5. Installing over an existing TasteRank install reuses the same EAS signing key, so local ratings are preserved.
+
+### Build locally with EAS
 
 ```bash
 npx eas-cli@latest login
-npx eas-cli@latest init                                    # links the project, writes extra.eas.projectId
+npx eas-cli@latest init
 npx eas-cli@latest build --platform android --profile preview
 ```
-
-EAS builds in the cloud, then prints a URL. Open it on the Samsung phone and install the APK (allow "install unknown apps" for your browser the first time).
-
-### Build from GitHub Actions (no terminal needed)
-
-`.github/workflows/build-tasterank-apk.yml` defines the **Build TasteRank APK** workflow. It runs only when started manually:
-
-1. Open the repository on GitHub → **Actions** → **Build TasteRank APK** → **Run workflow** (branch `main`).
-2. The first run links the EAS project with `eas init --account <your-account> --non-interactive` and EAS automatically generates and stores the Android keystore. No signing setup is needed from you.
-3. The job only queues the build (`--no-wait`); EAS builds in the cloud. The job summary contains the EAS build page link.
-4. Open that link on your phone, wait for the build to finish, then download and install the APK.
-
-It authenticates with the repository's `EXPO_TOKEN` Actions secret. If the secret is missing, the workflow fails at **Verify Expo authentication** without exposing any values.
-
-### Building from this Freebuff workspace
-
-Interactive Expo login cannot run in the cloud workspace, so use an access token:
-
-1. Create a free account at [expo.dev](https://expo.dev).
-2. In Expo account settings, create an **access token**.
-3. In this project open **Settings → Secrets** and add it as `EXPO_TOKEN`. Never paste the token into chat.
-4. Ask for the preview build. The first build runs `eas init --non-interactive` to link the project, then `eas build --platform android --profile preview --non-interactive`.
 
 ### Build the Play Store bundle later
 
@@ -110,9 +127,21 @@ Interactive Expo login cannot run in the cloud workspace, so use an access token
 npx eas-cli@latest build --platform android --profile production
 ```
 
-## Status and limitations
+## Verification and limitations
 
-- **No APK has been produced yet.** EAS cloud builds need Expo authentication; nothing has been uploaded or built.
-- This environment cannot run an Android emulator or a browser (missing Chromium system libraries, no root), so the app has not been exercised on a device here. TypeScript, Expo Doctor, Android/web Metro exports and the logic test suite all pass.
+- TypeScript and Expo Doctor pass, and the Android Metro/Hermes bundle exports successfully.
+- Logic checks cover barcode canonicalization, duplicate identity, category inference, variant extraction, product mapping, and API error types.
+- Live Open Food Facts checks were run against `search.openfoodfacts.org` and the v3 product endpoint:
+  - **Monster:** 20 results, 12 with images; top results are real but generic (“Monster” / “Monster Energy”)
+  - **Red Bull:** 20 results, 14 with images
+  - **C4 Energy:** 20 results, 20 with images
+  - **Barcode `5060335635808`:** Monster Ultra White, Monster Energy, energy category, real image, derived flavor “Ultra White”
+  - **Flavor-style query “Frozen Bombsicle”:** 20 real C4 results
+  - **12-digit UPC `611269818994`:** canonicalized to EAN-13 `0611269818994` and returned the Red Bull product
+  - An invalid/unknown barcode returned a clean not-found error.
+  - The client-side rate-limit guard rejected an immediate second search with a ~6 second retry.
+- **Honest gaps:** many OFF listings are sparse. The top Monster, Red Bull and C4 entries have no `flavors` field, so TasteRank shows the full product name and quantity, and derives a variant only when the name reliably contains one (for example “Ultra White”). Some community entries are wrong or generic (the third C4 result is branded “Skittles” in OFF). Users can edit every field before saving, or add the product manually.
+- This cloud environment cannot run an Android emulator or a browser, so the camera, barcode scanning, haptics, native share sheet and exact on-device layout have **not** been exercised here. They need a real device after installing the new APK.
+- No APK has been produced by this workspace. The build must run through EAS with your Expo authentication; the GitHub Actions workflow is ready for that.
 - iOS is configured only incidentally; the target is Android.
 - All data is local to one device. Sharing exports text, not a sync service.

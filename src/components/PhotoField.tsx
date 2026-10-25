@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Alert, Image, StyleSheet, View } from 'react-native';
@@ -14,6 +14,12 @@ interface PhotoFieldProps {
 }
 
 export function PhotoField({ photoUri, onChange }: PhotoFieldProps): React.JSX.Element {
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [photoUri]);
+
   const pick = async (source: 'library' | 'camera') => {
     try {
       if (source === 'camera') {
@@ -83,12 +89,19 @@ export function PhotoField({ photoUri, onChange }: PhotoFieldProps): React.JSX.E
         </AppText>
       </View>
 
-      {photoUri ? (
+      {photoUri && !imageFailed ? (
         <View style={styles.previewCard}>
-          <Image source={{ uri: photoUri }} style={styles.preview} resizeMode="cover" />
+          <Image
+            source={{ uri: photoUri }}
+            style={styles.preview}
+            resizeMode="cover"
+            onError={() => setImageFailed(true)}
+          />
           <View style={styles.previewFooter}>
             <AppText variant="caption" color={colors.textMuted} style={styles.previewHint}>
-              Stored on this device
+              {/^https?:\/\//i.test(photoUri)
+                ? 'Product photo from Open Food Facts'
+                : 'Stored on this device'}
             </AppText>
             <View style={styles.previewActions}>
               <Button
@@ -116,12 +129,20 @@ export function PhotoField({ photoUri, onChange }: PhotoFieldProps): React.JSX.E
           style={styles.emptyTile}
         >
           <View style={styles.emptyIcon}>
-            <Ionicons name="camera-outline" size={22} color={colors.lime} />
+            <Ionicons
+              name={photoUri ? 'image-outline' : 'camera-outline'}
+              size={22}
+              color={colors.lime}
+            />
           </View>
           <View style={styles.emptyCopy}>
-            <AppText variant="bodyStrong">Add a photo</AppText>
+            <AppText variant="bodyStrong">
+              {photoUri ? 'Image unavailable' : 'Add a photo'}
+            </AppText>
             <AppText variant="caption" color={colors.textMuted}>
-              Snap it now or pick from your library
+              {photoUri
+                ? 'Tap to choose a different photo'
+                : 'Snap it now or pick from your library'}
             </AppText>
           </View>
           <Ionicons name="add" size={20} color={colors.textFaint} />

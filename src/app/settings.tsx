@@ -194,6 +194,18 @@ export default function SettingsScreen(): React.JSX.Element {
         </View>
 
         <View style={styles.section}>
+          <AppText variant="label">PRODUCT DATA</AppText>
+          <Card padded={false}>
+            <SettingRow
+              icon="globe-outline"
+              title="Open Food Facts"
+              subtitle="Search data, attribution and licences"
+              onPress={() => router.push('/data-credits')}
+            />
+          </Card>
+        </View>
+
+        <View style={styles.section}>
           <AppText variant="label">ABOUT</AppText>
           <Card style={styles.aboutCard}>
             <View style={styles.aboutRow}>
@@ -211,7 +223,8 @@ export default function SettingsScreen(): React.JSX.Element {
             <View style={styles.aboutLine}>
               <Ionicons name="cloud-offline-outline" size={15} color={colors.lime} />
               <AppText variant="caption" color={colors.textMuted} style={styles.aboutLineText}>
-                Works fully offline. Ratings and photos live in this app&apos;s private storage.
+                Ratings and photos work offline. Product search needs a connection and
+                caches recent results on this device.
               </AppText>
             </View>
             <View style={styles.aboutLine}>

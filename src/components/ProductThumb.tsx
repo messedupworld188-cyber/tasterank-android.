@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,14 +30,25 @@ export function ProductThumb({
   showInitials = false,
 }: ProductThumbProps): React.JSX.Element {
   const meta = getCategory(category);
+  const [imageFailed, setImageFailed] = useState(false);
 
-  if (photoUri) {
+  useEffect(() => {
+    setImageFailed(false);
+  }, [photoUri]);
+
+  if (photoUri && !imageFailed) {
     return (
       <Image
         source={{ uri: photoUri }}
-        style={{ width: size, height: size, borderRadius: rounded, backgroundColor: colors.surfaceAlt }}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: rounded,
+          backgroundColor: colors.surfaceAlt,
+        }}
         resizeMode="cover"
         accessibilityIgnoresInvertColors
+        onError={() => setImageFailed(true)}
       />
     );
   }
@@ -53,7 +64,12 @@ export function ProductThumb({
         <View
           style={[
             styles.ring,
-            { borderColor: `${meta.tint}44`, width: size * 0.66, height: size * 0.66, borderRadius: size },
+            {
+              borderColor: `${meta.tint}44`,
+              width: size * 0.66,
+              height: size * 0.66,
+              borderRadius: size,
+            },
           ]}
         >
           {showInitials ? (

@@ -8,13 +8,15 @@ import { PhotoField } from './PhotoField';
 import { ScoreInput } from './ScoreInput';
 import { CATEGORIES } from '../constants/categories';
 import { colors } from '../constants/theme';
-import type { CategoryId, Rating, RatingInput } from '../types';
+import type { CategoryId, ProductSource, Rating, RatingInput } from '../types';
 import { hapticWarn } from '../lib/haptics';
+import { DuplicateRatingError } from '../store/RatingsProvider';
 
 interface RatingFormProps {
-  initial?: Rating;
+  initial?: Partial<Rating>;
   submitLabel: string;
   onSubmit: (input: RatingInput) => Promise<void>;
+  onDuplicate?: (existing: Rating) => void;
   footer?: React.ReactNode;
 }
 
@@ -22,6 +24,7 @@ export function RatingForm({
   initial,
   submitLabel,
   onSubmit,
+  onDuplicate,
   footer,
 }: RatingFormProps): React.JSX.Element {
   const [name, setName] = useState(initial?.name ?? '');
@@ -31,6 +34,8 @@ export function RatingForm({
   const [score, setScore] = useState(initial?.score ?? 8);
   const [review, setReview] = useState(initial?.review ?? '');
   const [photoUri, setPhotoUri] = useState<string | null>(initial?.photoUri ?? null);
+  const [barcode] = useState<string | null>(initial?.barcode ?? null);
+  const [source] = useState<ProductSource>(initial?.source ?? 'manual');
   const [nameError, setNameError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -43,8 +48,20 @@ export function RatingForm({
     setNameError(null);
     setSubmitting(true);
     try {
-      await onSubmit({ name, brand, flavor, category, score, review, photoUri });
+      await onSubmit({ name, brand, flavor, category, score, review, photoUri, barcode, source });
     } catch (error) {
+      if (error instanceof DuplicateRatingError) {
+        hapticWarn();
+        if (onDuplicate) {
+          onDuplicate(error.existing);
+        } else {
+          Alert.alert(
+            'Already in your collection',
+            `You already rated "${error.existing.name}". Open it from your rankings to edit that rating.`,
+          );
+        }
+        return;
+      }
       console.warn('[TasteRank] Could not save rating', error);
       Alert.alert('Could not save', 'Something went wrong while saving this rating. Please try again.');
     } finally {

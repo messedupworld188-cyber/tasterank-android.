@@ -66,6 +66,10 @@ export default function EditRatingScreen(): React.JSX.Element {
             <RatingForm
               initial={rating}
               submitLabel="Save changes"
+              onDuplicate={(existing) => {
+                close();
+                router.push(`/item/${existing.id}`);
+              }}
               onSubmit={async (input) => {
                 await updateRating(rating.id, input);
                 hapticSuccess();

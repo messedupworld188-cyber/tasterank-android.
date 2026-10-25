@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -15,6 +15,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { IconButton } from '../../components/ui/IconButton';
+import { PressableScale } from '../../components/ui/PressableScale';
 import { ScoreBar } from '../../components/ui/ScoreBadge';
 import { useToast } from '../../components/ui/Toast';
 import { useRatings } from '../../store/RatingsProvider';
@@ -32,6 +33,11 @@ export default function ItemDetailScreen(): React.JSX.Element {
   const { ratings, deleteRating } = useRatings();
   const { show } = useToast();
   const rating = findRating(ratings, typeof id === 'string' ? id : undefined);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [rating?.photoUri]);
 
   const goBack = () => {
     if (router.canGoBack()) router.back();
@@ -99,8 +105,13 @@ export default function ItemDetailScreen(): React.JSX.Element {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.hero}>
-          {rating.photoUri ? (
-            <Image source={{ uri: rating.photoUri }} style={styles.heroImage} resizeMode="cover" />
+          {rating.photoUri && !imageFailed ? (
+            <Image
+              source={{ uri: rating.photoUri }}
+              style={styles.heroImage}
+              resizeMode="cover"
+              onError={() => setImageFailed(true)}
+            />
           ) : (
             <LinearGradient
               colors={[`${category.tint}30`, '#141A20']}
@@ -207,6 +218,12 @@ export default function ItemDetailScreen(): React.JSX.Element {
             <MetaRow icon="calendar-outline" label="Rated" value={formatDate(rating.createdAt)} />
             <View style={styles.metaDivider} />
             <MetaRow icon="grid-outline" label="Category" value={category.label} />
+            {rating.barcode ? (
+              <>
+                <View style={styles.metaDivider} />
+                <MetaRow icon="barcode-outline" label="Barcode" value={rating.barcode} />
+              </>
+            ) : null}
             {edited ? (
               <>
                 <View style={styles.metaDivider} />
@@ -214,6 +231,22 @@ export default function ItemDetailScreen(): React.JSX.Element {
               </>
             ) : null}
           </View>
+
+          {rating.source === 'openfoodfacts' ? (
+            <PressableScale
+              accessibilityRole="link"
+              accessibilityLabel="About Open Food Facts product data"
+              onPress={() => router.push('/data-credits')}
+              haptic={false}
+              style={styles.creditNote}
+            >
+              <Ionicons name="information-circle-outline" size={15} color={colors.textFaint} />
+              <AppText variant="caption" color={colors.textMuted} style={styles.flex}>
+                Product details from Open Food Facts
+              </AppText>
+              <Ionicons name="chevron-forward" size={14} color={colors.textFaint} />
+            </PressableScale>
+          ) : null}
 
           <View style={styles.actions}>
             <Button
@@ -427,6 +460,17 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     gap: 10,
+  },
+  creditNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   flex: {
     flex: 1,
