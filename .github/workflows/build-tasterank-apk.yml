@@ -1,0 +1,89 @@
+name: Build TasteRank APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tasterank-apk
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: EAS Android preview APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Expo authentication
+        run: eas whoami
+
+      - name: Link EAS project (first run only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if node -e "process.exit(require('./app.json').expo?.extra?.eas?.projectId ? 0 : 1)"; then
+            echo "EAS project already linked in app.json."
+            exit 0
+          fi
+
+          ACCOUNT="$(eas whoami \
+            | sed -E 's/\x1B\[[0-9;]*[mK]//g' \
+            | head -n 1 \
+            | sed -E 's/ \(authenticated.*$//' \
+            | tr -d '\r' \
+            | xargs)"
+
+          if [ -z "${ACCOUNT}" ]; then
+            echo "Could not determine your Expo account from EXPO_TOKEN." >&2
+            exit 1
+          fi
+
+          echo "Linking @${ACCOUNT}/tasterank on EAS (creates the project if it does not exist)."
+          eas init --account "${ACCOUNT}" --non-interactive
+
+      - name: Start Android preview build
+        shell: bash
+        run: |
+          set -o pipefail
+          eas build --platform android --profile preview --non-interactive --no-wait | tee eas-build.log
+
+      - name: Add build link to summary
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="$(grep -Eo 'https://expo\.dev/[^[:space:]]+' eas-build.log | head -n 1 || true)"
+          {
+            echo "## TasteRank APK build queued"
+            echo ""
+            if [ -n "${URL}" ]; then
+              echo "Open this build page on your phone, wait for it to finish, then install the APK:"
+              echo ""
+              echo "${URL}"
+            else
+              echo "The build was queued. Open the 'Start Android preview build' step log above to find the build URL."
+            fi
+            echo ""
+            echo "Profile: \`preview\` · Artifact: APK · Platform: Android"
+          } >> "${GITHUB_STEP_SUMMARY}"
