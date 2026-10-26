@@ -38,7 +38,7 @@ export default function InsightsScreen(): React.JSX.Element {
     return (
       <Screen>
         <View style={styles.loading}>
-          <ActivityIndicator color={colors.lime} />
+          <ActivityIndicator color={colors.accent} />
         </View>
       </Screen>
     );
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   bucketFill: {
     height: '100%',
     borderRadius: radius.pill,
-    backgroundColor: colors.lime,
+    backgroundColor: colors.accent,
   },
   bucketCount: {
     width: 20,

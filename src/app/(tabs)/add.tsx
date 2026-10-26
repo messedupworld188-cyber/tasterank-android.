@@ -13,7 +13,7 @@ import { Screen } from '../../components/Screen';
 import { RatingForm } from '../../components/RatingForm';
 import { ProductSearch } from '../../components/ProductSearch';
 import { SelectedProductCard } from '../../components/SelectedProductCard';
-import { BarcodeScannerModal } from '../../components/BarcodeScannerModal';
+import { BarcodeScannerModal, type ScanStatus } from '../../components/BarcodeScannerModal';
 import { AppText } from '../../components/ui/AppText';
 import { PressableScale } from '../../components/ui/PressableScale';
 import { useToast } from '../../components/ui/Toast';
@@ -37,8 +37,12 @@ export default function AddScreen(): React.JSX.Element {
   const [selected, setSelected] = useState<ProductCandidate | null>(null);
   const [manualBarcode, setManualBarcode] = useState<string | null>(null);
   const [scannerVisible, setScannerVisible] = useState(false);
-  const [lookingUp, setLookingUp] = useState(false);
+  const [scanStatus, setScanStatus] = useState<ScanStatus>('idle');
+  const [detectedBarcode, setDetectedBarcode] = useState<string | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0);
+
+  const lookingUp = scanStatus === 'looking-up';
 
   const existingFor = useCallback(
     (product: ProductCandidate) => findDuplicateRating(ratings, product),
@@ -60,60 +64,71 @@ export default function AddScreen(): React.JSX.Element {
     [router],
   );
 
+  const resetScanner = useCallback(() => {
+    setScannerVisible(false);
+    setScanStatus('idle');
+    setDetectedBarcode(null);
+    setScanError(null);
+  }, []);
+
   const startProduct = useCallback(
     (product: ProductCandidate) => {
       const duplicate = findDuplicateRating(ratings, product);
       if (duplicate) {
+        resetScanner();
         openExisting(duplicate);
         return;
       }
+      resetScanner();
       setSelected(product);
       setManualBarcode(null);
       setFormKey((current) => current + 1);
       setMode('form');
     },
-    [openExisting, ratings],
+    [openExisting, ratings, resetScanner],
   );
 
-  const startManual = useCallback((barcode?: string) => {
-    setScannerVisible(false);
-    setSelected(null);
-    setManualBarcode(barcode ?? null);
-    setFormKey((current) => current + 1);
-    setMode('form');
-  }, []);
+  const startManual = useCallback(
+    (barcode?: string) => {
+      resetScanner();
+      setSelected(null);
+      setManualBarcode(barcode ?? null);
+      setFormKey((current) => current + 1);
+      setMode('form');
+    },
+    [resetScanner],
+  );
 
   const backToSearch = () => {
     setMode('search');
     setSelected(null);
     setManualBarcode(null);
+    resetScanner();
+  };
+
+  const openScanner = () => {
+    setScanStatus('idle');
+    setDetectedBarcode(null);
+    setScanError(null);
+    setScannerVisible(true);
   };
 
   const handleScanned = async (barcode: string) => {
     if (lookingUp) return;
-    setLookingUp(true);
+    // Show the number immediately, before the network round-trip begins.
+    setDetectedBarcode(barcode);
+    setScanError(null);
+    setScanStatus('looking-up');
     try {
       const outcome = await lookupBarcodeWithCache(barcode);
-      setScannerVisible(false);
       if (outcome.stale) {
         show('Offline — using the saved product');
       }
       startProduct(outcome.product);
     } catch (error) {
-      setScannerVisible(false);
       const notFound = error instanceof ProductApiError && error.kind === 'not-found';
-      Alert.alert(
-        notFound ? 'No product match' : 'Lookup failed',
-        notFound
-          ? `Barcode ${barcode} is not in Open Food Facts yet. Add it manually and TasteRank will keep the barcode with your rating.`
-          : productErrorMessage(error),
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Add manually', onPress: () => startManual(barcode) },
-        ],
-      );
-    } finally {
-      setLookingUp(false);
+      setScanStatus(notFound ? 'not-found' : 'error');
+      setScanError(notFound ? null : productErrorMessage(error));
     }
   };
 
@@ -149,7 +164,7 @@ export default function AddScreen(): React.JSX.Element {
           {mode === 'search' ? (
             <ProductSearch
               onSelect={startProduct}
-              onScan={() => setScannerVisible(true)}
+              onScan={openScanner}
               onManual={() => startManual()}
               existingFor={existingFor}
             />
@@ -172,9 +187,9 @@ export default function AddScreen(): React.JSX.Element {
                   <Ionicons
                     name={selected ? 'checkmark-circle' : 'create-outline'}
                     size={13}
-                    color={colors.lime}
+                    color={colors.accent}
                   />
-                  <AppText variant="label" color={colors.lime}>
+                  <AppText variant="label" color={colors.accent}>
                     {selected ? 'NEW RATING' : 'MANUAL ENTRY'}
                   </AppText>
                 </View>
@@ -193,7 +208,7 @@ export default function AddScreen(): React.JSX.Element {
               ) : manualBarcode ? (
                 <View style={styles.barcodeNote}>
                   <View style={styles.barcodeIcon}>
-                    <Ionicons name="barcode-outline" size={17} color={colors.lime} />
+                    <Ionicons name="barcode-outline" size={17} color={colors.accent} />
                   </View>
                   <View style={styles.barcodeCopy}>
                     <AppText variant="bodyStrong">Barcode captured</AppText>
@@ -228,12 +243,19 @@ export default function AddScreen(): React.JSX.Element {
 
       <BarcodeScannerModal
         visible={scannerVisible}
-        busy={lookingUp}
+        status={scanStatus}
+        detectedBarcode={detectedBarcode}
+        errorMessage={scanError}
         onClose={() => {
-          if (!lookingUp) setScannerVisible(false);
+          if (!lookingUp) resetScanner();
         }}
         onScanned={(barcode) => void handleScanned(barcode)}
-        onManual={() => startManual()}
+        onManual={(barcode) => startManual(barcode)}
+        onRetry={() => {
+          setDetectedBarcode(null);
+          setScanError(null);
+          setScanStatus('idle');
+        }}
       />
     </Screen>
   );
@@ -282,9 +304,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(196, 255, 84, 0.08)',
+    backgroundColor: colors.accentWash,
     borderWidth: 1,
-    borderColor: colors.limeBorder,
+    borderColor: colors.accentBorder,
   },
   barcodeCopy: {
     flex: 1,

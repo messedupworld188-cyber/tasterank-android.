@@ -37,8 +37,8 @@ export function SelectedProductCard({
         />
         <View style={styles.copy}>
           <View style={styles.sourceRow}>
-            <Ionicons name="checkmark-circle" size={13} color={colors.lime} />
-            <AppText variant="label" color={colors.lime}>
+            <Ionicons name="checkmark-circle" size={13} color={colors.accent} />
+            <AppText variant="label" color={colors.accent}>
               PRODUCT SELECTED
             </AppText>
           </View>
@@ -67,7 +67,7 @@ export function SelectedProductCard({
 const styles = StyleSheet.create({
   card: {
     gap: 14,
-    borderColor: colors.limeBorder,
+    borderColor: colors.accentBorder,
     backgroundColor: colors.surfaceAlt,
   },
   main: {

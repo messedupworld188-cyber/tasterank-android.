@@ -31,10 +31,10 @@ const PALETTE: Record<
   { background: string; border: string; text: string; icon: string }
 > = {
   primary: {
-    background: colors.lime,
-    border: colors.lime,
-    text: colors.onLime,
-    icon: colors.onLime,
+    background: colors.accent,
+    border: colors.accent,
+    text: colors.onAccent,
+    icon: colors.onAccent,
   },
   secondary: {
     background: colors.surfaceAlt,

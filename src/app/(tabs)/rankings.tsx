@@ -117,7 +117,7 @@ export default function RankingsScreen(): React.JSX.Element {
                   <AppText
                     variant="buttonSmall"
                     numberOfLines={1}
-                    color={active ? colors.onLime : colors.textMuted}
+                    color={active ? colors.onAccent : colors.textMuted}
                     style={styles.segmentLabel}
                   >
                     {option.label}
@@ -144,8 +144,8 @@ export default function RankingsScreen(): React.JSX.Element {
               }}
               style={styles.clearFilters}
             >
-              <Ionicons name="close-circle-outline" size={14} color={colors.lime} />
-              <AppText variant="caption" color={colors.lime}>
+              <Ionicons name="close-circle-outline" size={14} color={colors.accent} />
+              <AppText variant="caption" color={colors.accent}>
                 Clear
               </AppText>
             </PressableScale>
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
   },
   segmentItemActive: {
-    backgroundColor: colors.lime,
+    backgroundColor: colors.accent,
   },
   segmentLabel: {
     fontSize: 12,

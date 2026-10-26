@@ -79,7 +79,7 @@ export default function DataCreditsScreen(): React.JSX.Element {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.intro}>
           <View style={styles.badge}>
-            <Ionicons name="leaf-outline" size={26} color={colors.lime} />
+            <Ionicons name="leaf-outline" size={26} color={colors.accent} />
           </View>
           <AppText variant="display">Open data.{'\n'}Real products.</AppText>
           <AppText variant="body" color={colors.textMuted}>
@@ -105,7 +105,7 @@ export default function DataCreditsScreen(): React.JSX.Element {
         <Card style={styles.block}>
           <AppText variant="label">HOW TASTERANK USES IT</AppText>
           <View style={styles.bullet}>
-            <Ionicons name="search-outline" size={16} color={colors.lime} />
+            <Ionicons name="search-outline" size={16} color={colors.accent} />
             <AppText variant="body" color={colors.textMuted} style={styles.flex}>
               Keyword searches run only when you submit them, never as you type. TasteRank
               waits between requests to stay inside the published limits of 10 searches
@@ -113,7 +113,7 @@ export default function DataCreditsScreen(): React.JSX.Element {
             </AppText>
           </View>
           <View style={styles.bullet}>
-            <Ionicons name="save-outline" size={16} color={colors.lime} />
+            <Ionicons name="save-outline" size={16} color={colors.accent} />
             <AppText variant="body" color={colors.textMuted} style={styles.flex}>
               Search results are cached on this device for 24 hours and barcode lookups for
               7 days, so repeat searches work offline. Saved ratings and their photos never
@@ -121,7 +121,7 @@ export default function DataCreditsScreen(): React.JSX.Element {
             </AppText>
           </View>
           <View style={styles.bullet}>
-            <Ionicons name="refresh-outline" size={16} color={colors.lime} />
+            <Ionicons name="refresh-outline" size={16} color={colors.accent} />
             <AppText variant="body" color={colors.textMuted} style={styles.flex}>
               The database is community-maintained, so some products are missing, renamed
               or incomplete. You can always enter a product manually and add your own
@@ -144,7 +144,7 @@ export default function DataCreditsScreen(): React.JSX.Element {
                   style={styles.linkRow}
                 >
                   <View style={styles.linkIcon}>
-                    <Ionicons name={link.icon} size={17} color={colors.lime} />
+                    <Ionicons name={link.icon} size={17} color={colors.accent} />
                   </View>
                   <View style={styles.linkCopy}>
                     <AppText variant="bodyStrong">{link.label}</AppText>
@@ -199,9 +199,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(196, 255, 84, 0.08)',
+    backgroundColor: colors.accentWash,
     borderWidth: 1,
-    borderColor: colors.limeBorder,
+    borderColor: colors.accentBorder,
     marginBottom: 2,
   },
   block: {
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(196, 255, 84, 0.08)',
+    backgroundColor: colors.accentWash,
   },
   linkCopy: {
     flex: 1,

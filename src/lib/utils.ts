@@ -1,5 +1,6 @@
 import { SORT_OPTIONS, type Rating, type SortKey } from '../types';
 import { getCategory } from '../constants/categories';
+import { colors } from '../constants/theme';
 
 export function roundScore(value: number): number {
   const clamped = Math.min(10, Math.max(0, value));
@@ -125,9 +126,9 @@ export function scoreTone(score: number): {
 } {
   if (score >= 8) {
     return {
-      background: 'rgba(196, 255, 84, 0.16)',
-      text: '#C4FF54',
-      border: 'rgba(196, 255, 84, 0.4)',
+      background: colors.accentSoft,
+      text: colors.accentBright,
+      border: colors.accentBorder,
     };
   }
   if (score >= 6) {

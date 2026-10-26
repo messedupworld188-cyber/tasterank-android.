@@ -132,7 +132,7 @@ export function PhotoField({ photoUri, onChange }: PhotoFieldProps): React.JSX.E
             <Ionicons
               name={photoUri ? 'image-outline' : 'camera-outline'}
               size={22}
-              color={colors.lime}
+              color={colors.accent}
             />
           </View>
           <View style={styles.emptyCopy}>
@@ -207,9 +207,9 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(196, 255, 84, 0.1)',
+    backgroundColor: colors.accentSoft,
     borderWidth: 1,
-    borderColor: colors.limeBorder,
+    borderColor: colors.accentBorder,
   },
   emptyCopy: {
     flex: 1,

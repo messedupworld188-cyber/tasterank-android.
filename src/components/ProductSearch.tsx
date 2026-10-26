@@ -127,8 +127,8 @@ export function ProductSearch({
     <View style={styles.container}>
       <View style={styles.intro}>
         <View style={styles.eyebrow}>
-          <Ionicons name="search" size={13} color={colors.lime} />
-          <AppText variant="label" color={colors.lime}>
+          <Ionicons name="search" size={13} color={colors.accent} />
+          <AppText variant="label" color={colors.accent}>
             PRODUCT SEARCH
           </AppText>
         </View>
@@ -153,8 +153,8 @@ export function ProductSearch({
             placeholder="Monster, Barebells, C4…"
             placeholderTextColor={colors.textFaint}
             style={styles.input}
-            selectionColor={colors.lime}
-            cursorColor={colors.lime}
+            selectionColor={colors.accent}
+            cursorColor={colors.accent}
             autoCapitalize="none"
             autoCorrect={false}
             returnKeyType="search"
@@ -190,9 +190,9 @@ export function ProductSearch({
             ]}
           >
             {loading ? (
-              <ActivityIndicator size="small" color={colors.onLime} />
+              <ActivityIndicator size="small" color={colors.onAccent} />
             ) : (
-              <Ionicons name="arrow-forward" size={18} color={colors.onLime} />
+              <Ionicons name="arrow-forward" size={18} color={colors.onAccent} />
             )}
           </PressableScale>
         </View>
@@ -235,8 +235,8 @@ export function ProductSearch({
           onPress={onScan}
           style={styles.actionCard}
         >
-          <View style={[styles.actionIcon, styles.actionIconLime]}>
-            <Ionicons name="scan-outline" size={20} color={colors.onLime} />
+          <View style={[styles.actionIcon, styles.actionIconAccent]}>
+            <Ionicons name="scan-outline" size={20} color={colors.onAccent} />
           </View>
           <View style={styles.actionCopy}>
             <AppText variant="bodyStrong">Scan barcode</AppText>
@@ -252,7 +252,7 @@ export function ProductSearch({
           style={styles.actionCard}
         >
           <View style={styles.actionIcon}>
-            <Ionicons name="create-outline" size={20} color={colors.lime} />
+            <Ionicons name="create-outline" size={20} color={colors.accent} />
           </View>
           <View style={styles.actionCopy}>
             <AppText variant="bodyStrong">Add manually</AppText>
@@ -265,7 +265,7 @@ export function ProductSearch({
 
       {loading ? (
         <Card style={styles.loadingCard}>
-          <ActivityIndicator color={colors.lime} />
+          <ActivityIndicator color={colors.accent} />
           <AppText variant="bodyStrong">Searching Open Food Facts…</AppText>
           <AppText variant="caption" color={colors.textMuted} align="center">
             Real product data, matched on name, brand and flavor.
@@ -300,7 +300,7 @@ export function ProductSearch({
               haptic={false}
               style={styles.noticeAction}
             >
-              <AppText variant="caption" color={colors.lime}>
+              <AppText variant="caption" color={colors.accent}>
                 Retry
               </AppText>
             </PressableScale>
@@ -339,7 +339,7 @@ export function ProductSearch({
       {!loading && searched && results.length === 0 && notice?.kind !== 'error' ? (
         <Card style={styles.emptyCard}>
           <View style={styles.emptyIcon}>
-            <Ionicons name="search-outline" size={24} color={colors.lime} />
+            <Ionicons name="search-outline" size={24} color={colors.accent} />
           </View>
           <AppText variant="heading" align="center">
             No matches for “{searched}”
@@ -355,7 +355,7 @@ export function ProductSearch({
       {!loading && !searched ? (
         <Card style={styles.tipCard}>
           <View style={styles.tipIcon}>
-            <Ionicons name="bulb-outline" size={19} color={colors.lime} />
+            <Ionicons name="bulb-outline" size={19} color={colors.accent} />
           </View>
           <View style={styles.tipCopy}>
             <AppText variant="bodyStrong">Search tips</AppText>
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   searchBarFocused: {
-    borderColor: colors.limeBorder,
+    borderColor: colors.accentBorder,
     backgroundColor: colors.surfaceAlt,
   },
   input: {
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.lime,
+    backgroundColor: colors.accent,
   },
   searchButtonDisabled: {
     opacity: 0.35,
@@ -472,13 +472,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(196, 255, 84, 0.1)',
+    backgroundColor: colors.accentSoft,
     borderWidth: 1,
-    borderColor: colors.limeBorder,
+    borderColor: colors.accentBorder,
   },
-  actionIconLime: {
-    backgroundColor: colors.lime,
-    borderColor: colors.lime,
+  actionIconAccent: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   actionCopy: {
     gap: 1,
@@ -540,9 +540,9 @@ const styles = StyleSheet.create({
     borderRadius: 27,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(196, 255, 84, 0.08)',
+    backgroundColor: colors.accentWash,
     borderWidth: 1,
-    borderColor: colors.limeBorder,
+    borderColor: colors.accentBorder,
   },
   tipCard: {
     flexDirection: 'row',
@@ -556,7 +556,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(196, 255, 84, 0.08)',
+    backgroundColor: colors.accentWash,
   },
   tipCopy: {
     flex: 1,

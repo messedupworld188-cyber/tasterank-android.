@@ -39,10 +39,10 @@ export function SectionHeader({
           haptic={false}
           style={styles.action}
         >
-          <AppText variant="buttonSmall" color={colors.lime}>
+          <AppText variant="buttonSmall" color={colors.accent}>
             {actionLabel}
           </AppText>
-          <Ionicons name="arrow-forward" size={14} color={colors.lime} />
+          <Ionicons name="arrow-forward" size={14} color={colors.accent} />
         </PressableScale>
       ) : null}
     </View>

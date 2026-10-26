@@ -37,15 +37,15 @@ export function ScoreInput({ value, onChange }: ScoreInputProps): React.JSX.Elem
           YOUR SCORE
         </AppText>
         <View style={styles.verdictPill}>
-          <Ionicons name="sparkles" size={12} color={colors.lime} />
-          <AppText variant="caption" color={colors.lime}>
+          <Ionicons name="sparkles" size={12} color={colors.accent} />
+          <AppText variant="caption" color={colors.accent}>
             {verdictFor(value)}
           </AppText>
         </View>
       </View>
 
       <View style={styles.scoreRow}>
-        <AppText style={styles.score} color={colors.lime}>
+        <AppText style={styles.score} color={colors.accent}>
           {value.toFixed(1)}
         </AppText>
         <AppText variant="heading" color={colors.textFaint} style={styles.outOf}>
@@ -60,9 +60,9 @@ export function ScoreInput({ value, onChange }: ScoreInputProps): React.JSX.Elem
         step={0.1}
         value={value}
         onValueChange={(next) => setScore(next)}
-        minimumTrackTintColor={colors.lime}
+        minimumTrackTintColor={colors.accent}
         maximumTrackTintColor={colors.surfaceHi}
-        thumbTintColor={colors.lime}
+        thumbTintColor={colors.accent}
         accessibilityLabel="Rating score from 0 to 10"
       />
 
@@ -114,9 +114,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(196, 255, 84, 0.1)',
+    backgroundColor: colors.accentSoft,
     borderWidth: 1,
-    borderColor: colors.limeBorder,
+    borderColor: colors.accentBorder,
   },
   scoreRow: {
     flexDirection: 'row',

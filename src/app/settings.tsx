@@ -28,16 +28,16 @@ function SettingRow({
   title: string;
   subtitle?: string;
   onPress: () => void;
-  tone?: 'default' | 'danger' | 'lime';
+  tone?: 'default' | 'danger' | 'accent';
   badge?: string;
 }): React.JSX.Element {
   const iconColor =
-    tone === 'danger' ? colors.danger : tone === 'lime' ? colors.lime : colors.textMuted;
+    tone === 'danger' ? colors.danger : tone === 'accent' ? colors.accent : colors.textMuted;
   const iconBackground =
     tone === 'danger'
       ? colors.dangerSoft
-      : tone === 'lime'
-        ? 'rgba(196, 255, 84, 0.1)'
+      : tone === 'accent'
+        ? colors.accentSoft
         : colors.surfaceAlt;
 
   return (
@@ -161,7 +161,7 @@ export default function SettingsScreen(): React.JSX.Element {
                   : 'Try the app with a curated sample collection'
               }
               onPress={() => void handleLoadDemo()}
-              tone="lime"
+              tone="accent"
             />
             <View style={styles.divider} />
             <SettingRow
@@ -210,7 +210,7 @@ export default function SettingsScreen(): React.JSX.Element {
           <Card style={styles.aboutCard}>
             <View style={styles.aboutRow}>
               <View style={styles.logoMark}>
-                <Ionicons name="podium" size={18} color={colors.onLime} />
+                <Ionicons name="podium" size={18} color={colors.onAccent} />
               </View>
               <View style={styles.aboutCopy}>
                 <AppText variant="heading">TasteRank</AppText>
@@ -221,14 +221,14 @@ export default function SettingsScreen(): React.JSX.Element {
             </View>
             <View style={styles.aboutDivider} />
             <View style={styles.aboutLine}>
-              <Ionicons name="cloud-offline-outline" size={15} color={colors.lime} />
+              <Ionicons name="cloud-offline-outline" size={15} color={colors.accent} />
               <AppText variant="caption" color={colors.textMuted} style={styles.aboutLineText}>
                 Ratings and photos work offline. Product search needs a connection and
                 caches recent results on this device.
               </AppText>
             </View>
             <View style={styles.aboutLine}>
-              <Ionicons name="phone-portrait-outline" size={15} color={colors.lime} />
+              <Ionicons name="phone-portrait-outline" size={15} color={colors.accent} />
               <AppText variant="caption" color={colors.textMuted} style={styles.aboutLineText}>
                 Uninstalling TasteRank removes your ratings, so share the ones you want to keep.
               </AppText>
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: colors.lime,
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },

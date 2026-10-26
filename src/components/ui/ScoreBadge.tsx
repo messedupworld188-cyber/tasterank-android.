@@ -68,7 +68,7 @@ export function ScoreBar({ score, height = 5, tint }: ScoreBarProps): React.JSX.
           width,
           height,
           borderRadius: height / 2,
-          backgroundColor: tint ?? colors.lime,
+          backgroundColor: tint ?? colors.accent,
         }}
       />
     </View>

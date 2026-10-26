@@ -140,7 +140,7 @@ export function TopRatedCard({ rating, rank, onPress }: LeaderboardRowProps): Re
         <AppText variant="label" color={colors.textFaint}>
           #{rank}
         </AppText>
-        <Ionicons name="arrow-forward" size={14} color={colors.lime} />
+        <Ionicons name="arrow-forward" size={14} color={colors.accent} />
       </View>
     </PressableScale>
   );
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   leaderRowTop: {
-    backgroundColor: 'rgba(196, 255, 84, 0.035)',
+    backgroundColor: colors.accentWash,
     borderRadius: radius.md,
     paddingHorizontal: 8,
     marginHorizontal: -8,

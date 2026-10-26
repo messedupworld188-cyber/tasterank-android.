@@ -58,8 +58,8 @@ export function Field({
           onBlur?.(event);
         }}
         placeholderTextColor={colors.textFaint}
-        selectionColor={colors.lime}
-        cursorColor={colors.lime}
+        selectionColor={colors.accent}
+        cursorColor={colors.accent}
         style={[
           styles.input,
           multiline ? styles.inputMultiline : null,
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     paddingTop: 14,
   },
   inputFocused: {
-    borderColor: colors.limeBorder,
+    borderColor: colors.accentBorder,
     backgroundColor: colors.surfaceAlt,
   },
   inputError: {

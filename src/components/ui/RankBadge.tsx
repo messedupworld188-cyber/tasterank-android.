@@ -10,14 +10,14 @@ export function RankBadge({ rank }: { rank: number }): React.JSX.Element {
       style={[
         styles.badge,
         {
-          backgroundColor: isPodium ? colors.lime : colors.surfaceAlt,
-          borderColor: isPodium ? colors.lime : colors.border,
+          backgroundColor: isPodium ? colors.accent : colors.surfaceAlt,
+          borderColor: isPodium ? colors.accent : colors.border,
         },
       ]}
     >
       <AppText
         style={styles.text}
-        color={isPodium ? colors.onLime : colors.textMuted}
+        color={isPodium ? colors.onAccent : colors.textMuted}
       >
         {rank}
       </AppText>

@@ -25,7 +25,7 @@ export function EmptyState({
     <View style={[styles.container, compact ? styles.compact : null]}>
       <View style={styles.badge}>
         <View style={styles.badgeInner}>
-          <Ionicons name={icon} size={26} color={colors.lime} />
+          <Ionicons name={icon} size={26} color={colors.accent} />
         </View>
       </View>
       <View style={styles.copy}>
@@ -58,9 +58,9 @@ const styles = StyleSheet.create({
     borderRadius: 42,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(196, 255, 84, 0.07)',
+    backgroundColor: colors.accentWash,
     borderWidth: 1,
-    borderColor: colors.limeBorder,
+    borderColor: colors.accentBorder,
   },
   badgeInner: {
     width: 60,
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(196, 255, 84, 0.1)',
+    backgroundColor: colors.accentSoft,
   },
   copy: {
     gap: 8,

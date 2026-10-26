@@ -67,7 +67,7 @@ export function ToastProvider({ children }: { children: ReactNode }): React.JSX.
           <View pointerEvents="none" style={[styles.wrapper, { bottom: insets.bottom + 86 }]}>
             <Animated.View style={[styles.toast, { opacity, transform: [{ translateY }] }]}>
               <View style={styles.iconWrap}>
-                <Ionicons name="checkmark" size={13} color={colors.onLime} />
+                <Ionicons name="checkmark" size={13} color={colors.onAccent} />
               </View>
               <AppText variant="bodyStrong" numberOfLines={2} style={styles.text}>
                 {message}
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: colors.lime,
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },

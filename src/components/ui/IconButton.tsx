@@ -12,14 +12,14 @@ interface IconButtonProps {
   accessibilityLabel: string;
   size?: number;
   iconSize?: number;
-  tone?: 'surface' | 'lime' | 'ghost' | 'danger';
+  tone?: 'surface' | 'accent' | 'ghost' | 'danger';
   style?: StyleProp<ViewStyle>;
   disabled?: boolean;
 }
 
 const TONES = {
   surface: { background: colors.surfaceAlt, border: colors.border, icon: colors.text },
-  lime: { background: colors.lime, border: colors.lime, icon: colors.onLime },
+  accent: { background: colors.accent, border: colors.accent, icon: colors.onAccent },
   ghost: { background: 'transparent', border: 'transparent', icon: colors.textMuted },
   danger: { background: colors.dangerSoft, border: colors.dangerBorder, icon: colors.danger },
 } as const;

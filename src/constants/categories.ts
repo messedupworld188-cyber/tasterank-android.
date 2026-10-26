@@ -1,3 +1,4 @@
+import { colors } from './theme';
 import type { CategoryId } from '../types';
 
 export interface CategoryMeta {
@@ -10,8 +11,8 @@ export interface CategoryMeta {
 }
 
 export const CATEGORIES: CategoryMeta[] = [
-  { id: 'energy', label: 'Energy Drinks', short: 'Energy', icon: 'flash', tint: '#C4FF54' },
-  { id: 'protein', label: 'Protein Bars', short: 'Protein', icon: 'barbell', tint: '#7BD8FF' },
+  { id: 'energy', label: 'Energy Drinks', short: 'Energy', icon: 'flash', tint: colors.accent },
+  { id: 'protein', label: 'Protein Bars', short: 'Protein', icon: 'barbell', tint: '#A5B4FC' },
   { id: 'snacks', label: 'Snacks', short: 'Snacks', icon: 'fast-food', tint: '#FFD166' },
   { id: 'restaurants', label: 'Restaurants', short: 'Restaurants', icon: 'restaurant', tint: '#FF9F6E' },
   { id: 'coffee', label: 'Coffee & Tea', short: 'Coffee', icon: 'cafe', tint: '#E0C3A3' },

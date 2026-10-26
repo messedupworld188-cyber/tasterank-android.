@@ -50,7 +50,7 @@ export default function HomeScreen(): React.JSX.Element {
     return (
       <Screen>
         <View style={styles.loading}>
-          <ActivityIndicator color={colors.lime} />
+          <ActivityIndicator color={colors.accent} />
         </View>
       </Screen>
     );
@@ -65,7 +65,7 @@ export default function HomeScreen(): React.JSX.Element {
         <View style={styles.header}>
           <View style={styles.brandRow}>
             <View style={styles.brandMark}>
-              <Ionicons name="podium" size={14} color={colors.onLime} />
+              <Ionicons name="podium" size={14} color={colors.onAccent} />
             </View>
             <AppText style={styles.wordmark}>TasteRank</AppText>
           </View>
@@ -77,7 +77,7 @@ export default function HomeScreen(): React.JSX.Element {
         </View>
 
         <View style={styles.intro}>
-          <AppText variant="label" color={colors.lime}>
+          <AppText variant="label" color={colors.accent}>
             {greeting().toUpperCase()}
           </AppText>
           <AppText variant="display">Your taste,{'\n'}ranked.</AppText>
@@ -124,19 +124,19 @@ export default function HomeScreen(): React.JSX.Element {
               style={styles.heroWrap}
             >
               <LinearGradient
-                colors={['#20291F', '#151A1E']}
+                colors={[colors.accentDeep, colors.surface]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.hero}
               >
                 <View style={styles.heroTop}>
                   <View style={styles.heroLabel}>
-                    <Ionicons name="trophy" size={12} color={colors.lime} />
-                    <AppText variant="label" color={colors.lime}>
+                    <Ionicons name="trophy" size={12} color={colors.accent} />
+                    <AppText variant="label" color={colors.accent}>
                       YOUR #1
                     </AppText>
                   </View>
-                  <Ionicons name="arrow-forward" size={17} color={colors.lime} />
+                  <Ionicons name="arrow-forward" size={17} color={colors.accent} />
                 </View>
 
                 <View style={styles.heroMain}>
@@ -157,7 +157,7 @@ export default function HomeScreen(): React.JSX.Element {
                         getCategory(hero.category).label}
                     </AppText>
                     <View style={styles.heroScoreRow}>
-                      <AppText style={styles.heroScore} color={colors.lime}>
+                      <AppText style={styles.heroScore} color={colors.accent}>
                         {hero.score.toFixed(1)}
                       </AppText>
                       <AppText variant="caption" color={colors.textFaint}>
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 9,
-    backgroundColor: colors.lime,
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   heroWrap: {
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: colors.limeBorder,
+    borderColor: colors.accentBorder,
     overflow: 'hidden',
   },
   hero: {

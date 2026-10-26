@@ -20,7 +20,7 @@ export default function TabsLayout(): React.JSX.Element {
     <Tabs
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: colors.lime,
+        tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textFaint,
         tabBarHideOnKeyboard: true,
         tabBarStyle: {
@@ -56,7 +56,7 @@ export default function TabsLayout(): React.JSX.Element {
           title: 'Rate',
           tabBarIcon: ({ focused }) => (
             <View style={[styles.addButton, focused ? styles.addButtonActive : null]}>
-              <Ionicons name="add" size={25} color={focused ? colors.onLime : colors.text} />
+              <Ionicons name="add" size={25} color={focused ? colors.onAccent : colors.text} />
             </View>
           ),
         }}
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   addButtonActive: {
-    backgroundColor: colors.lime,
-    borderColor: colors.lime,
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
 });

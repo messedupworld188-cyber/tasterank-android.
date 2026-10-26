@@ -23,8 +23,8 @@ export function SearchField({
         placeholder={placeholder}
         placeholderTextColor={colors.textFaint}
         style={styles.input}
-        selectionColor={colors.lime}
-        cursorColor={colors.lime}
+        selectionColor={colors.accent}
+        cursorColor={colors.accent}
         returnKeyType="search"
         autoCorrect={false}
         autoCapitalize="none"
@@ -38,7 +38,7 @@ export function SearchField({
           hitSlop={10}
           style={styles.clear}
         >
-          <Ionicons name="close" size={15} color={colors.onLime} />
+          <Ionicons name="close" size={15} color={colors.onAccent} />
         </Pressable>
       ) : null}
     </View>
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: colors.lime,
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },

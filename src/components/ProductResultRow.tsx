@@ -63,13 +63,13 @@ export function ProductResultRow({
       </View>
       {existing ? (
         <View style={styles.rated}>
-          <Ionicons name="checkmark" size={11} color={colors.onLime} />
-          <AppText variant="caption" color={colors.onLime} style={styles.ratedText}>
+          <Ionicons name="checkmark" size={11} color={colors.onAccent} />
+          <AppText variant="caption" color={colors.onAccent} style={styles.ratedText}>
             {formatScore(existing.score)}
           </AppText>
         </View>
       ) : (
-        <Ionicons name="add-circle-outline" size={21} color={colors.lime} />
+        <Ionicons name="add-circle-outline" size={21} color={colors.accent} />
       )}
     </PressableScale>
   );
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     height: 24,
     paddingHorizontal: 8,
     borderRadius: radius.pill,
-    backgroundColor: colors.lime,
+    backgroundColor: colors.accent,
   },
   ratedText: {
     fontSize: 11,

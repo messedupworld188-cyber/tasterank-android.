@@ -14,7 +14,7 @@ import { normalizeBarcode } from './productIdentity';
 const SEARCH_ENDPOINT = 'https://search.openfoodfacts.org/search';
 const PRODUCT_ENDPOINT = 'https://world.openfoodfacts.org/api/v3/product';
 const USER_AGENT =
-  'TasteRank/1.1.0 (https://github.com/messedupworld188-cyber/tasterank-android.)';
+  'TasteRank/1.2.0 (https://github.com/messedupworld188-cyber/tasterank-android.)';
 
 const SEARCH_PAGE_SIZE = 20;
 const SEARCH_INTERVAL_MS = 6_500; // 10 per minute, with headroom

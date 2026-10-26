@@ -34,6 +34,6 @@ export const textColors = {
   primary: colors.text,
   muted: colors.textMuted,
   faint: colors.textFaint,
-  lime: colors.lime,
+  accent: colors.accent,
   danger: colors.danger,
 } as const;

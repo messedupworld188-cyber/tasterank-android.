@@ -1,6 +1,8 @@
 /**
  * TasteRank design tokens.
- * Dark charcoal surfaces with a single electric lime accent.
+ * Dark charcoal surfaces with a single Ice Blue accent.
+ *
+ * Change `accent` and its related tokens here to re-theme the whole app.
  */
 
 export const colors = {
@@ -16,11 +18,15 @@ export const colors = {
   textMuted: '#98A3B2',
   textFaint: '#6B7583',
 
-  lime: '#C4FF54',
-  limeSoft: 'rgba(196, 255, 84, 0.14)',
-  limeBorder: 'rgba(196, 255, 84, 0.38)',
-  limeDim: '#A6E33B',
-  onLime: '#101318',
+  accent: '#7DD3FC',
+  accentBright: '#BAE8FF',
+  accentSoft: 'rgba(125, 211, 252, 0.14)',
+  accentWash: 'rgba(125, 211, 252, 0.08)',
+  accentBorder: 'rgba(125, 211, 252, 0.38)',
+  accentLine: 'rgba(125, 211, 252, 0.55)',
+  accentDim: '#4EA8D6',
+  accentDeep: '#12384F',
+  onAccent: '#081521',
 
   danger: '#FF6B6B',
   dangerSoft: 'rgba(255, 107, 107, 0.14)',

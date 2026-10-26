@@ -22,7 +22,7 @@ export function Chip({
   icon,
   accessibilityLabel,
 }: ChipProps): React.JSX.Element {
-  const contentColor = selected ? colors.onLime : colors.textMuted;
+  const contentColor = selected ? colors.onAccent : colors.textMuted;
   return (
     <PressableScale
       accessibilityRole="button"
@@ -33,8 +33,8 @@ export function Chip({
       style={[
         styles.chip,
         {
-          backgroundColor: selected ? colors.lime : colors.surfaceAlt,
-          borderColor: selected ? colors.lime : colors.border,
+          backgroundColor: selected ? colors.accent : colors.surfaceAlt,
+          borderColor: selected ? colors.accent : colors.border,
         },
       ]}
     >

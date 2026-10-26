@@ -28,22 +28,22 @@ export function StatTile({
       style={[
         styles.tile,
         accent
-          ? { backgroundColor: 'rgba(196, 255, 84, 0.09)', borderColor: colors.limeBorder }
+          ? { backgroundColor: colors.accentWash, borderColor: colors.accentBorder }
           : null,
         style,
       ]}
     >
       <View style={styles.topRow}>
-        <AppText variant="label" color={accent ? colors.lime : colors.textFaint}>
+        <AppText variant="label" color={accent ? colors.accent : colors.textFaint}>
           {label.toUpperCase()}
         </AppText>
         {icon ? (
-          <Ionicons name={icon} size={13} color={accent ? colors.lime : colors.textFaint} />
+          <Ionicons name={icon} size={13} color={accent ? colors.accent : colors.textFaint} />
         ) : null}
       </View>
       <AppText
         style={styles.value}
-        color={accent ? colors.lime : colors.text}
+        color={accent ? colors.accent : colors.text}
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.7}

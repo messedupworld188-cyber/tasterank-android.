@@ -2,11 +2,13 @@
 
 A native Android app for rating and ranking energy drinks, protein bars, snacks, restaurants and anything else you try. Built with Expo SDK 58, React Native 0.88 and TypeScript — not a website or WebView wrapper.
 
-Ratings, reviews and photos save on-device and rank themselves automatically. Version 1.1 adds real product discovery: search Open Food Facts by name, brand or flavor, or scan a barcode with the camera, then rate the product. No login, no backend, no paid API.
+Ratings, reviews and photos save on-device and rank themselves automatically. Version 1.2 adds real product discovery with an Ice Blue theme: search Open Food Facts by name, brand or flavor, or scan a barcode with the camera, then rate the product. No login, no backend, no paid API.
 
 ## Design
 
-- Dark charcoal surfaces (`#101318`) with a single electric lime accent (`#C4FF54`)
+- Dark charcoal surfaces (`#101318`) with a single Ice Blue accent (`#7DD3FC`)
+- All accent tokens live in `src/constants/theme.ts`; screens and components never hard-code the accent
+- Launcher icon, adaptive icon foreground, splash mark and favicon recolored to match
 - Space Grotesk typography, high-contrast text, rounded cards and generous spacing
 - Native stack transitions, spring-press feedback and light haptics on real interactions
 - Safe-area aware for edge-to-edge Android, tuned for Galaxy-sized phones
@@ -28,7 +30,8 @@ Ratings, reviews and photos save on-device and rank themselves automatically. Ve
 
 - **Source:** [Open Food Facts](https://world.openfoodfacts.org), a collaborative open database. Full-text search uses the documented [Search-a-licious API](https://search.openfoodfacts.org/docs); barcode lookups use the current [v3 product API](https://openfoodfacts.github.io/openfoodfacts-server/api/).
 - **Search:** runs only when you submit a query, never as you type. This follows the published rule against search-as-you-type. Results are capped at 20 and show the real product image, name, brand, variant/flavor when the database has one, quantity and category.
-- **Barcode scanning:** `expo-camera` with EAN-8, EAN-13, UPC-A, UPC-E, Code 128, Code 39 and ITF-14 support. A 12-digit UPC-A is canonicalized to its 13-digit EAN form before lookup.
+- **Barcode scanning:** `expo-camera` live detection for EAN-13, EAN-8, UPC-A, UPC-E and Code 128. The detected number appears immediately, before the product lookup. The native camera is rebound once after it becomes ready because Expo can otherwise bind its analyzer before the barcode settings arrive. A 12-digit UPC-A is canonicalized to its 13-digit EAN form before lookup.
+- **Scanner fallbacks:** if live detection does not respond, **Capture & scan** takes a still photo and decodes it with ML Kit, and **System** opens Google’s native barcode scanner when Play Services provides it. **Enter number** accepts the digits printed under the barcode. Not-found barcodes open manual product entry with the number retained.
 - **Category inference:** Open Food Facts tags (and well-known energy brands) map into TasteRank's existing categories; the user can always change the category on the form.
 - **Duplicate protection:** a product is identified by barcode first, otherwise by normalized brand + name + flavor. Both the search list and the save path block duplicates and offer to open the existing rating. Changing a rating cannot collide with another saved product.
 - **Photos:** remote front-of-pack images are downloaded into the app's private `rating-photos/` directory when a rating is saved, so they survive restarts and offline use. If the download fails, the remote URL is kept as a fallback, and a failed image shows a category placeholder instead of a broken box.
@@ -50,7 +53,7 @@ The cache is best-effort AsyncStorage and never touches the ratings envelope. If
 
 Product data is © Open Food Facts contributors and is available under the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/1-0/). Individual database contents are available under the Database Contents License. Product images are available under [Creative Commons Attribution-ShareAlike](https://creativecommons.org/licenses/by-sa/4.0/). TasteRank is independent and not endorsed by Open Food Facts.
 
-Attribution appears under the search results, on the selected product form, on item details for Open Food Facts products, and in the **Product data** screen, which links to the source, terms, ODbL, CC BY-SA and API documentation. The API documentation asks production apps to identify themselves with a custom User-Agent (TasteRank sends `TasteRank/1.1.0` plus the repository URL) and to submit its API usage form.
+Attribution appears under the search results, on the selected product form, on item details for Open Food Facts products, and in the **Product data** screen, which links to the source, terms, ODbL, CC BY-SA and API documentation. The API documentation asks production apps to identify themselves with a custom User-Agent (TasteRank sends `TasteRank/1.2.0` plus the repository URL) and to submit its API usage form.
 
 ## Project structure
 
@@ -96,7 +99,7 @@ Expo Go includes the camera module, but a new **development build or preview APK
 
 ## Android build (EAS)
 
-`app.json` is configured for `com.tasterank.app`, version `1.1.0`, versionCode `2`, adaptive icon, splash screen, photo/camera permissions and the `expo-camera` config plugin. The preview APK and production AAB profiles are unchanged.
+`app.json` is configured for `com.tasterank.app`, version `1.2.0`, versionCode `3`, adaptive icon, splash screen, photo/camera permissions and the `expo-camera` config plugin. The preview APK and production AAB profiles are unchanged, and the existing EAS Android signing key is reused so the APK installs as an update.
 
 `eas.json` has:
 
@@ -130,6 +133,7 @@ npx eas-cli@latest build --platform android --profile production
 ## Verification and limitations
 
 - TypeScript and Expo Doctor pass, and the Android Metro/Hermes bundle exports successfully.
+- The Ice Blue palette is verified in the source: no `#C4FF54` accent values remain outside product data named “Chilli lime”.
 - Logic checks cover barcode canonicalization, duplicate identity, category inference, variant extraction, product mapping, and API error types.
 - Live Open Food Facts checks were run against `search.openfoodfacts.org` and the v3 product endpoint:
   - **Monster:** 20 results, 12 with images; top results are real but generic (“Monster” / “Monster Energy”)
@@ -141,7 +145,7 @@ npx eas-cli@latest build --platform android --profile production
   - An invalid/unknown barcode returned a clean not-found error.
   - The client-side rate-limit guard rejected an immediate second search with a ~6 second retry.
 - **Honest gaps:** many OFF listings are sparse. The top Monster, Red Bull and C4 entries have no `flavors` field, so TasteRank shows the full product name and quantity, and derives a variant only when the name reliably contains one (for example “Ultra White”). Some community entries are wrong or generic (the third C4 result is branded “Skittles” in OFF). Users can edit every field before saving, or add the product manually.
-- This cloud environment cannot run an Android emulator or a browser, so the camera, barcode scanning, haptics, native share sheet and exact on-device layout have **not** been exercised here. They need a real device after installing the new APK.
-- No APK has been produced by this workspace. The build must run through EAS with your Expo authentication; the GitHub Actions workflow is ready for that.
+- This cloud environment cannot run an Android emulator or a browser, so the camera, live barcode detection, capture fallback, Google system scanner, haptics, native share sheet and exact on-device layout have **not** been exercised here. They need a real device after installing the new APK. In particular, confirm that a physical can or bar decodes in live mode; if it does not, try Capture and Enter number before reporting a device-specific failure.
+- No APK has been produced by this change. The existing **Build TasteRank APK** GitHub Actions workflow is ready and must be started manually; it uses the repository’s `EXPO_TOKEN` secret and the unchanged EAS signing key.
 - iOS is configured only incidentally; the target is Android.
 - All data is local to one device. Sharing exports text, not a sync service.

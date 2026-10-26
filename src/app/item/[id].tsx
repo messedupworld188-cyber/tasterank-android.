@@ -180,7 +180,7 @@ export default function ItemDetailScreen(): React.JSX.Element {
                   MY RATING
                 </AppText>
                 <View style={styles.scoreRow}>
-                  <AppText style={styles.score} color={colors.lime}>
+                  <AppText style={styles.score} color={colors.accent}>
                     {formatScore(rating.score)}
                   </AppText>
                   <AppText variant="heading" color={colors.textFaint} style={styles.outOf}>
@@ -189,8 +189,8 @@ export default function ItemDetailScreen(): React.JSX.Element {
                 </View>
               </View>
               <View style={styles.verdict}>
-                <Ionicons name="sparkles" size={12} color={colors.lime} />
-                <AppText variant="caption" color={colors.lime}>
+                <Ionicons name="sparkles" size={12} color={colors.accent} />
+                <AppText variant="caption" color={colors.accent}>
                   {verdictFor(rating.score)}
                 </AppText>
               </View>
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
   },
   scoreCard: {
     gap: spacing.lg,
-    borderColor: colors.limeBorder,
+    borderColor: colors.accentBorder,
     backgroundColor: colors.surfaceAlt,
     padding: spacing.xl,
   },
@@ -418,9 +418,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(196, 255, 84, 0.1)',
+    backgroundColor: colors.accentSoft,
     borderWidth: 1,
-    borderColor: colors.limeBorder,
+    borderColor: colors.accentBorder,
     marginBottom: 8,
   },
   section: {
