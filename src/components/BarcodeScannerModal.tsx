@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import {
   CameraView,
-  scanFromURLAsync,
   useCameraPermissions,
   type BarcodeScanningResult,
   type BarcodeType,
@@ -25,6 +24,7 @@ import { IconButton } from './ui/IconButton';
 import { PressableScale } from './ui/PressableScale';
 import { colors, fonts, radius, spacing } from '../constants/theme';
 import { hapticSuccess } from '../lib/haptics';
+import { BarcodePhotoError, decodeBarcodeFromBase64 } from '../lib/barcodePhoto';
 
 export type ScanStatus = 'idle' | 'looking-up' | 'not-found' | 'error';
 
@@ -43,10 +43,18 @@ interface BarcodeScannerModalProps {
 
 const BARCODE_TYPES: BarcodeType[] = ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128'];
 const SCANNER_SETTINGS = { barcodeTypes: BARCODE_TYPES };
+const NO_EVENT_HINT_MS = 10_000;
 
 function messageFor(error: unknown): string {
+  if (error instanceof BarcodePhotoError) return error.message;
   if (error instanceof Error && error.message) return error.message;
-  return 'The scanner could not read this barcode. Try again or enter the number manually.';
+  return 'The photo could not be read. Try again or enter the number manually.';
+}
+
+function clockTime(timestamp: number): string {
+  const date = new Date(timestamp);
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
 export function BarcodeScannerModal({
@@ -64,41 +72,46 @@ export function BarcodeScannerModal({
   const [torch, setTorch] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
+  const [cameraKey, setCameraKey] = useState(0);
   const [capturing, setCapturing] = useState(false);
   const [captureError, setCaptureError] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualValue, setManualValue] = useState('');
   const [manualError, setManualError] = useState<string | null>(null);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [scanEvents, setScanEvents] = useState(0);
+  const [lastEventAt, setLastEventAt] = useState<number | null>(null);
+  const [noEventHint, setNoEventHint] = useState(false);
 
   const cameraRef = useRef<CameraView>(null);
   const locked = useRef(false);
-  const rebound = useRef(false);
-  const rebindTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const modernScannerSubscription = useRef<{ remove: () => void } | null>(null);
+  const lookingUpRef = useRef(false);
+  const manualOpenRef = useRef(false);
+  const onScannedRef = useRef(onScanned);
 
   const lookingUp = status === 'looking-up';
+  const showDetected = Boolean(detectedBarcode);
+  const needsSettings = permission !== null && !permission.granted && !permission.canAskAgain;
+
+  lookingUpRef.current = lookingUp;
+  manualOpenRef.current = manualOpen;
+  onScannedRef.current = onScanned;
 
   useEffect(() => {
-    if (visible) {
-      locked.current = false;
-      rebound.current = false;
-      setTorch(false);
-      setCameraError(null);
-      setCameraReady(false);
-      setCapturing(false);
-      setCaptureError(null);
-      setManualOpen(false);
-      setManualValue('');
-      setManualError(null);
-    } else {
-      if (rebindTimer.current) clearTimeout(rebindTimer.current);
-      rebindTimer.current = null;
-      modernScannerSubscription.current?.remove();
-      modernScannerSubscription.current = null;
-    }
-    return () => {
-      if (rebindTimer.current) clearTimeout(rebindTimer.current);
-    };
+    if (!visible) return;
+    locked.current = false;
+    setTorch(false);
+    setCameraError(null);
+    setCameraReady(false);
+    setCapturing(false);
+    setCaptureError(null);
+    setManualOpen(false);
+    setManualValue('');
+    setManualError(null);
+    setDiagnosticsOpen(false);
+    setScanEvents(0);
+    setLastEventAt(null);
+    setNoEventHint(false);
   }, [visible]);
 
   // A retry clears the detected value in the parent. Re-arm scanning at that point.
@@ -109,88 +122,79 @@ export function BarcodeScannerModal({
   }, [detectedBarcode, lookingUp]);
 
   useEffect(() => {
-    return () => {
-      modernScannerSubscription.current?.remove();
-      if (rebindTimer.current) clearTimeout(rebindTimer.current);
-    };
-  }, []);
+    if (!visible || !cameraReady || manualOpen || showDetected || scanEvents > 0) {
+      setNoEventHint(false);
+      return;
+    }
 
-  const handleBarcode = useCallback(
-    (value: string | BarcodeScanningResult | null | undefined) => {
-      const data = (typeof value === 'string' ? value : value?.data)?.trim();
-      if (!data || locked.current || lookingUp || manualOpen) return;
-      locked.current = true;
-      hapticSuccess();
-      onScanned(data);
-    },
-    [lookingUp, manualOpen, onScanned],
-  );
+    const timer = setTimeout(() => setNoEventHint(true), NO_EVENT_HINT_MS);
+    return () => clearTimeout(timer);
+  }, [cameraReady, manualOpen, scanEvents, showDetected, visible]);
+
+  /**
+   * Stable callback: CameraView must keep the same native barcode listener
+   * while busy, so it never toggles scanning off during a product lookup.
+   */
+  const handleBarcode = useCallback((value: string | BarcodeScanningResult | null | undefined) => {
+    const data = (typeof value === 'string' ? value : value?.data)?.trim();
+    if (!data || locked.current || lookingUpRef.current || manualOpenRef.current) return;
+
+    locked.current = true;
+    setScanEvents((current) => current + 1);
+    setLastEventAt(Date.now());
+    setDiagnosticsOpen(false);
+    hapticSuccess();
+    onScannedRef.current(data);
+  }, []);
 
   const handleCameraReady = () => {
     setCameraReady(true);
-    if (rebound.current) return;
-    rebound.current = true;
+    setCameraError(null);
+  };
 
-    // expo-camera can start the preview before the barcode props have reached
-    // the native view, which leaves the image analyzer detached. Rebinding the
-    // camera once after it is ready applies the current settings and analyzer.
-    if (Platform.OS === 'android') {
-      rebindTimer.current = setTimeout(() => {
-        void cameraRef.current?.resumePreview();
-      }, 300);
-    }
+  const restartCamera = () => {
+    locked.current = false;
+    setTorch(false);
+    setCameraError(null);
+    setCameraReady(false);
+    setCaptureError(null);
+    setNoEventHint(false);
+    setScanEvents(0);
+    setLastEventAt(null);
+    setCameraKey((current) => current + 1);
   };
 
   const captureAndScan = async () => {
-    if (!cameraRef.current || locked.current || lookingUp || capturing) return;
+    if (!cameraRef.current || locked.current || lookingUp || capturing || !cameraReady) return;
+
     Keyboard.dismiss();
     setCapturing(true);
     setCaptureError(null);
+
     try {
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
+        base64: true,
         shutterSound: false,
       });
-      if (!photo?.uri) {
-        throw new Error('The camera did not return a photo. Try again.');
+
+      if (!photo?.base64) {
+        throw new BarcodePhotoError('The camera did not return image data. Try again.');
       }
-      const results = await scanFromURLAsync(photo.uri, BARCODE_TYPES);
-      const match = results.find((result) => Boolean(result.data));
-      if (!match?.data) {
+
+      const match = await decodeBarcodeFromBase64(photo.base64);
+      if (!match) {
         setCaptureError(
           'No barcode was found in that photo. Fill more of the frame, hold steady and try again.',
         );
         return;
       }
-      handleBarcode(match.data);
+
+      handleBarcode(match.value);
     } catch (error) {
       setCaptureError(messageFor(error));
     } finally {
       setCapturing(false);
-    }
-  };
-
-  const openSystemScanner = async () => {
-    Keyboard.dismiss();
-    setCaptureError(null);
-    if (!CameraView.isModernBarcodeScannerAvailable) {
-      setCaptureError(
-        'Google’s barcode scanner is unavailable on this device. Use capture or type the number instead.',
-      );
-      return;
-    }
-    try {
-      modernScannerSubscription.current?.remove();
-      modernScannerSubscription.current = CameraView.onModernBarcodeScanned((event) => {
-        modernScannerSubscription.current?.remove();
-        modernScannerSubscription.current = null;
-        handleBarcode(event.data);
-      });
-      await CameraView.launchScanner({ barcodeTypes: BARCODE_TYPES });
-    } catch (error) {
-      modernScannerSubscription.current?.remove();
-      modernScannerSubscription.current = null;
-      setCaptureError(messageFor(error));
     }
   };
 
@@ -204,15 +208,56 @@ export function BarcodeScannerModal({
       setManualError('A retail barcode has at most 14 digits.');
       return;
     }
+
     Keyboard.dismiss();
     setManualError(null);
     setManualOpen(false);
     locked.current = true;
-    onScanned(digits);
+    setLastEventAt(Date.now());
+    onScannedRef.current(digits);
   };
 
-  const needsSettings = permission !== null && !permission.granted && !permission.canAskAgain;
-  const showDetected = Boolean(detectedBarcode);
+  const openManual = () => {
+    Keyboard.dismiss();
+    setManualOpen(true);
+    setCaptureError(null);
+    setDiagnosticsOpen(false);
+  };
+
+  const diagnostics = [
+    {
+      label: 'Camera',
+      value: cameraError ? 'Error' : cameraReady ? 'Ready' : 'Starting',
+    },
+    {
+      label: 'Live analyzer',
+      value:
+        scanEvents > 0
+          ? `${scanEvents} barcode event${scanEvents === 1 ? '' : 's'} received`
+          : cameraReady
+            ? 'Waiting for a barcode'
+            : 'Not started',
+    },
+    {
+      label: 'Last event',
+      value: lastEventAt ? clockTime(lastEventAt) : 'None yet',
+    },
+    {
+      label: 'Formats',
+      value: 'EAN-13 · EAN-8 · UPC-A · UPC-E · Code 128',
+    },
+    {
+      label: 'Photo decoder',
+      value: 'ZXing on-device (no Google services)',
+    },
+    {
+      label: 'Google Code Scanner',
+      value:
+        Platform.OS === 'android' && !CameraView.isModernBarcodeScannerAvailable
+          ? 'Not detected — not required for live scanning'
+          : 'Available — not used for live scanning',
+    },
+  ];
 
   return (
     <Modal
@@ -225,11 +270,15 @@ export function BarcodeScannerModal({
       <View style={styles.root}>
         {visible && permission?.granted ? (
           <CameraView
+            key={cameraKey}
             ref={cameraRef}
             style={StyleSheet.absoluteFill}
             facing="back"
             mode="picture"
+            ratio="4:3"
+            pictureSize="1280x960"
             enableTorch={torch}
+            animateShutter={false}
             barcodeScannerSettings={SCANNER_SETTINGS}
             onBarcodeScanned={handleBarcode}
             onCameraReady={handleCameraReady}
@@ -257,6 +306,12 @@ export function BarcodeScannerModal({
             accessibilityLabel={torch ? 'Turn off torch' : 'Turn on torch'}
             onPress={() => setTorch((current) => !current)}
             disabled={!permission?.granted || manualOpen}
+          />
+          <IconButton
+            icon={diagnosticsOpen ? 'information-circle' : 'information-circle-outline'}
+            accessibilityLabel={diagnosticsOpen ? 'Close scanner diagnostics' : 'Scanner diagnostics'}
+            onPress={() => setDiagnosticsOpen((current) => !current)}
+            disabled={manualOpen}
           />
         </View>
 
@@ -320,7 +375,54 @@ export function BarcodeScannerModal({
               />
             </View>
           </KeyboardAvoidingView>
-        ) : permission?.granted && cameraError ? (
+        ) : !permission?.granted ? (
+          <View style={[styles.permission, { paddingBottom: insets.bottom + spacing.xxl }]}>
+            {permission === null ? (
+              <ActivityIndicator color={colors.accent} />
+            ) : (
+              <>
+                <View style={styles.permissionIcon}>
+                  <Ionicons name="camera-outline" size={28} color={colors.accent} />
+                </View>
+                <AppText variant="title" align="center">
+                  Camera access
+                </AppText>
+                <AppText variant="body" color={colors.textMuted} align="center">
+                  TasteRank uses your camera only to read product barcodes. Photos are not
+                  recorded or uploaded.
+                </AppText>
+                {cameraError ? (
+                  <AppText variant="caption" color={colors.danger} align="center">
+                    {cameraError}
+                  </AppText>
+                ) : null}
+                <Button
+                  label={needsSettings ? 'Open settings' : 'Allow camera'}
+                  icon={needsSettings ? 'settings-outline' : 'camera-outline'}
+                  fullWidth
+                  onPress={() => {
+                    if (needsSettings) void Linking.openSettings();
+                    else void requestPermission();
+                  }}
+                />
+                <Button
+                  label="Enter barcode number"
+                  variant="ghost"
+                  icon="keypad-outline"
+                  fullWidth
+                  onPress={openManual}
+                />
+                <Button
+                  label="Add product manually"
+                  variant="ghost"
+                  icon="create-outline"
+                  fullWidth
+                  onPress={() => onManual()}
+                />
+              </>
+            )}
+          </View>
+        ) : cameraError ? (
           <View style={styles.centerOverlay}>
             <View style={styles.stateCard}>
               <Ionicons name="camera-outline" size={24} color={colors.danger} />
@@ -330,11 +432,8 @@ export function BarcodeScannerModal({
               <AppText variant="caption" color={colors.textMuted} align="center">
                 {cameraError}
               </AppText>
-              <Button
-                label="Enter barcode number"
-                icon="keypad-outline"
-                onPress={() => setManualOpen(true)}
-              />
+              <Button label="Restart camera" icon="refresh" onPress={restartCamera} />
+              <Button label="Enter barcode number" icon="keypad-outline" onPress={openManual} />
               <Button
                 label="Add product manually"
                 variant="ghost"
@@ -343,7 +442,7 @@ export function BarcodeScannerModal({
               />
             </View>
           </View>
-        ) : permission?.granted ? (
+        ) : (
           <>
             <View pointerEvents="none" style={styles.frameArea}>
               <View style={styles.dim} />
@@ -381,7 +480,53 @@ export function BarcodeScannerModal({
               </View>
             </View>
 
-            {showDetected ? (
+            {diagnosticsOpen ? (
+              <View style={[styles.diagnosticsOverlay, { paddingBottom: insets.bottom + 18 }]}>
+                <View style={styles.diagnosticsCard}>
+                  <View style={styles.diagnosticsHeader}>
+                    <View style={styles.diagnosticsTitle}>
+                      <Ionicons name="information-circle-outline" size={18} color={colors.accent} />
+                      <AppText variant="bodyStrong">Scanner diagnostics</AppText>
+                    </View>
+                    <IconButton
+                      icon="close"
+                      accessibilityLabel="Close scanner diagnostics"
+                      onPress={() => setDiagnosticsOpen(false)}
+                    />
+                  </View>
+                  <View style={styles.diagnosticsRows}>
+                    {diagnostics.map((row) => (
+                      <View style={styles.diagnosticsRow} key={row.label}>
+                        <AppText variant="caption" color={colors.textFaint} style={styles.diagLabel}>
+                          {row.label}
+                        </AppText>
+                        <AppText variant="caption" color={colors.text} style={styles.diagValue}>
+                          {row.value}
+                        </AppText>
+                      </View>
+                    ))}
+                  </View>
+                  {cameraError || captureError ? (
+                    <View style={styles.diagnosticsError}>
+                      <Ionicons name="warning-outline" size={15} color={colors.gold} />
+                      <AppText variant="caption" color={colors.gold} style={styles.diagnosticsErrorText}>
+                        {cameraError ?? captureError}
+                      </AppText>
+                    </View>
+                  ) : null}
+                  <View style={styles.diagnosticsActions}>
+                    <Button label="Restart live camera" icon="refresh" onPress={restartCamera} />
+                    <Button
+                      label="Photo scan"
+                      variant="secondary"
+                      icon="camera-outline"
+                      onPress={() => void captureAndScan()}
+                      disabled={capturing || !cameraReady}
+                    />
+                  </View>
+                </View>
+              </View>
+            ) : showDetected ? (
               <View
                 style={[styles.detectedOverlay, { paddingBottom: insets.bottom + 18 }]}
                 pointerEvents="box-none"
@@ -444,12 +589,7 @@ export function BarcodeScannerModal({
                         {errorMessage ??
                           'Open Food Facts could not be reached. Check your connection and try again.'}
                       </AppText>
-                      <Button
-                        label="Try again"
-                        icon="refresh"
-                        fullWidth
-                        onPress={onRetry}
-                      />
+                      <Button label="Try again" icon="refresh" fullWidth onPress={onRetry} />
                       <Button
                         label="Add manually with this barcode"
                         variant="ghost"
@@ -463,6 +603,14 @@ export function BarcodeScannerModal({
               </View>
             ) : (
               <View style={[styles.actions, { bottom: insets.bottom + 24 }]}>
+                {noEventHint ? (
+                  <View style={styles.hintPill}>
+                    <Ionicons name="information-circle-outline" size={15} color={colors.accent} />
+                    <AppText variant="caption" color={colors.textMuted} style={styles.hintText}>
+                      No native scan event yet. Photo scan reads the barcode on your phone.
+                    </AppText>
+                  </View>
+                ) : null}
                 {captureError ? (
                   <View style={styles.errorPill}>
                     <Ionicons name="warning-outline" size={14} color={colors.gold} />
@@ -474,7 +622,7 @@ export function BarcodeScannerModal({
                 <View style={styles.actionRow}>
                   <PressableScale
                     accessibilityRole="button"
-                    accessibilityLabel="Capture the barcode as a photo"
+                    accessibilityLabel="Take a photo and decode the barcode on this device"
                     onPress={() => void captureAndScan()}
                     disabled={capturing || !cameraReady}
                     style={styles.actionChip}
@@ -485,16 +633,13 @@ export function BarcodeScannerModal({
                       <Ionicons name="camera-outline" size={17} color={colors.accent} />
                     )}
                     <AppText variant="buttonSmall" color={colors.text}>
-                      Capture
+                      Photo scan
                     </AppText>
                   </PressableScale>
                   <PressableScale
                     accessibilityRole="button"
                     accessibilityLabel="Enter a barcode number"
-                    onPress={() => {
-                      Keyboard.dismiss();
-                      setManualOpen(true);
-                    }}
+                    onPress={openManual}
                     style={styles.actionChip}
                   >
                     <Ionicons name="keypad-outline" size={17} color={colors.accent} />
@@ -502,20 +647,10 @@ export function BarcodeScannerModal({
                       Enter number
                     </AppText>
                   </PressableScale>
-                  {CameraView.isModernBarcodeScannerAvailable ? (
-                    <PressableScale
-                      accessibilityRole="button"
-                      accessibilityLabel="Open the system barcode scanner"
-                      onPress={() => void openSystemScanner()}
-                      style={styles.actionChip}
-                    >
-                      <Ionicons name="scan-outline" size={17} color={colors.accent} />
-                      <AppText variant="buttonSmall" color={colors.text}>
-                        System
-                      </AppText>
-                    </PressableScale>
-                  ) : null}
                 </View>
+                <AppText variant="caption" color={colors.textFaint} align="center">
+                  Photo scan decodes on this phone. No Google services needed.
+                </AppText>
               </View>
             )}
 
@@ -525,59 +660,12 @@ export function BarcodeScannerModal({
                   <ActivityIndicator color={colors.accent} />
                   <AppText variant="bodyStrong">Reading photo…</AppText>
                   <AppText variant="caption" color={colors.textMuted}>
-                    Finding the barcode in the picture
+                    Decoding the barcode on this device
                   </AppText>
                 </View>
               </View>
             ) : null}
           </>
-        ) : (
-          <View style={[styles.permission, { paddingBottom: insets.bottom + spacing.xxl }]}>
-            {permission === null ? (
-              <ActivityIndicator color={colors.accent} />
-            ) : (
-              <>
-                <View style={styles.permissionIcon}>
-                  <Ionicons name="camera-outline" size={28} color={colors.accent} />
-                </View>
-                <AppText variant="title" align="center">
-                  Camera access
-                </AppText>
-                <AppText variant="body" color={colors.textMuted} align="center">
-                  TasteRank uses your camera only to read product barcodes. Photos are not
-                  recorded or uploaded.
-                </AppText>
-                {cameraError ? (
-                  <AppText variant="caption" color={colors.danger} align="center">
-                    {cameraError}
-                  </AppText>
-                ) : null}
-                <Button
-                  label={needsSettings ? 'Open settings' : 'Allow camera'}
-                  icon={needsSettings ? 'settings-outline' : 'camera-outline'}
-                  fullWidth
-                  onPress={() => {
-                    if (needsSettings) void Linking.openSettings();
-                    else void requestPermission();
-                  }}
-                />
-                <Button
-                  label="Enter barcode number"
-                  variant="ghost"
-                  icon="keypad-outline"
-                  fullWidth
-                  onPress={() => setManualOpen(true)}
-                />
-                <Button
-                  label="Add product manually"
-                  variant="ghost"
-                  icon="create-outline"
-                  fullWidth
-                  onPress={() => onManual()}
-                />
-              </>
-            )}
-          </View>
         )}
       </View>
     </Modal>
@@ -597,7 +685,7 @@ const styles = StyleSheet.create({
     zIndex: 3,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   headerCopy: {
     flex: 1,
@@ -702,6 +790,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(8, 14, 20, 0.82)',
     borderWidth: 1,
     borderColor: colors.accentBorder,
+  },
+  hintPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(8, 14, 20, 0.9)',
+    borderWidth: 1,
+    borderColor: colors.accentBorder,
+  },
+  hintText: {
+    flex: 1,
   },
   errorPill: {
     flexDirection: 'row',
@@ -863,5 +965,61 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.accentBorder,
     marginBottom: 4,
+  },
+  diagnosticsOverlay: {
+    position: 'absolute',
+    left: spacing.lg,
+    right: spacing.lg,
+    bottom: 0,
+  },
+  diagnosticsCard: {
+    gap: 12,
+    padding: 16,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+  },
+  diagnosticsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  diagnosticsTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  diagnosticsRows: {
+    gap: 7,
+  },
+  diagnosticsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  diagLabel: {
+    width: 118,
+    fontSize: 10,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  diagValue: {
+    flex: 1,
+    lineHeight: 16,
+  },
+  diagnosticsError: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 7,
+    paddingTop: 2,
+  },
+  diagnosticsErrorText: {
+    flex: 1,
+  },
+  diagnosticsActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
   },
 });

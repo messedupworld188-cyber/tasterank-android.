@@ -2,7 +2,7 @@
 
 A native Android app for rating and ranking energy drinks, protein bars, snacks, restaurants and anything else you try. Built with Expo SDK 58, React Native 0.88 and TypeScript — not a website or WebView wrapper.
 
-Ratings, reviews and photos save on-device and rank themselves automatically. Version 1.2 adds real product discovery with an Ice Blue theme: search Open Food Facts by name, brand or flavor, or scan a barcode with the camera, then rate the product. No login, no backend, no paid API.
+Ratings, reviews and photos save on-device and rank themselves automatically. Version 1.2 adds real product discovery with an Ice Blue theme: search Open Food Facts by name, brand or flavor, or scan a barcode with the camera, then rate the product. Version 1.2.1 replaces the Google-dependent scanner fallbacks with an on-device photo decoder and adds scanner diagnostics. No login, no backend, no paid API.
 
 ## Design
 
@@ -30,8 +30,9 @@ Ratings, reviews and photos save on-device and rank themselves automatically. Ve
 
 - **Source:** [Open Food Facts](https://world.openfoodfacts.org), a collaborative open database. Full-text search uses the documented [Search-a-licious API](https://search.openfoodfacts.org/docs); barcode lookups use the current [v3 product API](https://openfoodfacts.github.io/openfoodfacts-server/api/).
 - **Search:** runs only when you submit a query, never as you type. This follows the published rule against search-as-you-type. Results are capped at 20 and show the real product image, name, brand, variant/flavor when the database has one, quantity and category.
-- **Barcode scanning:** `expo-camera` live detection for EAN-13, EAN-8, UPC-A, UPC-E and Code 128. The detected number appears immediately, before the product lookup. The native camera is rebound once after it becomes ready because Expo can otherwise bind its analyzer before the barcode settings arrive. A 12-digit UPC-A is canonicalized to its 13-digit EAN form before lookup.
-- **Scanner fallbacks:** if live detection does not respond, **Capture & scan** takes a still photo and decodes it with ML Kit, and **System** opens Google’s native barcode scanner when Play Services provides it. **Enter number** accepts the digits printed under the barcode. Not-found barcodes open manual product entry with the number retained.
+- **Barcode scanning:** `expo-camera` live detection for EAN-13, EAN-8, UPC-A, UPC-E and Code 128. The detected number appears immediately, before the product lookup. The camera uses a stable native callback, a 1280×960 camera target and no preview rebinding. A 12-digit UPC-A is canonicalized to its 13-digit EAN form before lookup.
+- **Scanner fallbacks:** **Photo scan** takes a still photo and decodes it entirely on the phone with ZXing (the `@zxing/library` JavaScript port and `jpeg-js`), so it needs no Google Play Services, Google Code Scanner or native ML Kit. **Enter number** accepts the digits printed under the barcode. The Google Code Scanner button was removed because it failed on a Samsung device without usable Play Services. Not-found barcodes open manual product entry with the number retained.
+- **Scanner diagnostics:** the information button in the scanner shows whether the camera is ready, how many live barcode events have arrived, the last event time, the active formats and which decoder is in use. It also offers **Restart live camera** and **Photo scan**.
 - **Category inference:** Open Food Facts tags (and well-known energy brands) map into TasteRank's existing categories; the user can always change the category on the form.
 - **Duplicate protection:** a product is identified by barcode first, otherwise by normalized brand + name + flavor. Both the search list and the save path block duplicates and offer to open the existing rating. Changing a rating cannot collide with another saved product.
 - **Photos:** remote front-of-pack images are downloaded into the app's private `rating-photos/` directory when a rating is saved, so they survive restarts and offline use. If the download fails, the remote URL is kept as a fallback, and a failed image shows a category placeholder instead of a broken box.
@@ -53,7 +54,7 @@ The cache is best-effort AsyncStorage and never touches the ratings envelope. If
 
 Product data is © Open Food Facts contributors and is available under the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/1-0/). Individual database contents are available under the Database Contents License. Product images are available under [Creative Commons Attribution-ShareAlike](https://creativecommons.org/licenses/by-sa/4.0/). TasteRank is independent and not endorsed by Open Food Facts.
 
-Attribution appears under the search results, on the selected product form, on item details for Open Food Facts products, and in the **Product data** screen, which links to the source, terms, ODbL, CC BY-SA and API documentation. The API documentation asks production apps to identify themselves with a custom User-Agent (TasteRank sends `TasteRank/1.2.0` plus the repository URL) and to submit its API usage form.
+Attribution appears under the search results, on the selected product form, on item details for Open Food Facts products, and in the **Product data** screen, which links to the source, terms, ODbL, CC BY-SA and API documentation. The API documentation asks production apps to identify themselves with a custom User-Agent (TasteRank sends `TasteRank/1.2.1` plus the repository URL) and to submit its API usage form.
 
 ## Project structure
 
@@ -99,7 +100,7 @@ Expo Go includes the camera module, but a new **development build or preview APK
 
 ## Android build (EAS)
 
-`app.json` is configured for `com.tasterank.app`, version `1.2.0`, versionCode `3`, adaptive icon, splash screen, photo/camera permissions and the `expo-camera` config plugin. The preview APK and production AAB profiles are unchanged, and the existing EAS Android signing key is reused so the APK installs as an update.
+`app.json` is configured for `com.tasterank.app`, version `1.2.1`, versionCode `4`, adaptive icon, splash screen, photo/camera permissions and the `expo-camera` config plugin. The preview APK and production AAB profiles are unchanged, and the existing EAS Android signing key is reused so the APK installs as an update.
 
 `eas.json` has:
 
@@ -135,6 +136,7 @@ npx eas-cli@latest build --platform android --profile production
 - TypeScript and Expo Doctor pass, and the Android Metro/Hermes bundle exports successfully.
 - The Ice Blue palette is verified in the source: no `#C4FF54` accent values remain outside product data named “Chilli lime”.
 - Logic checks cover barcode canonicalization, duplicate identity, category inference, variant extraction, product mapping, and API error types.
+- The on-device photo decoder was tested against a real EAN-13 JPEG (`5060335635808`): it returned the correct number and `EAN-13` format.
 - Live Open Food Facts checks were run against `search.openfoodfacts.org` and the v3 product endpoint:
   - **Monster:** 20 results, 12 with images; top results are real but generic (“Monster” / “Monster Energy”)
   - **Red Bull:** 20 results, 14 with images
@@ -145,7 +147,8 @@ npx eas-cli@latest build --platform android --profile production
   - An invalid/unknown barcode returned a clean not-found error.
   - The client-side rate-limit guard rejected an immediate second search with a ~6 second retry.
 - **Honest gaps:** many OFF listings are sparse. The top Monster, Red Bull and C4 entries have no `flavors` field, so TasteRank shows the full product name and quantity, and derives a variant only when the name reliably contains one (for example “Ultra White”). Some community entries are wrong or generic (the third C4 result is branded “Skittles” in OFF). Users can edit every field before saving, or add the product manually.
-- This cloud environment cannot run an Android emulator or a browser, so the camera, live barcode detection, capture fallback, Google system scanner, haptics, native share sheet and exact on-device layout have **not** been exercised here. They need a real device after installing the new APK. In particular, confirm that a physical can or bar decodes in live mode; if it does not, try Capture and Enter number before reporting a device-specific failure.
+- This cloud environment cannot run an Android emulator or a browser, so the camera, live barcode detection, photo-camera capture, haptics, native share sheet and exact on-device layout have **not** been exercised here. They need a real device after installing the new APK. The scanner diagnostics screen is included specifically so a silent live-analyzer failure can be identified on the phone.
 - No APK has been produced by this change. The existing **Build TasteRank APK** GitHub Actions workflow is ready and must be started manually; it uses the repository’s `EXPO_TOKEN` secret and the unchanged EAS signing key.
+- Barcode photo decoding uses [ZXing](https://github.com/zxing-js/library) (MIT) and [jpeg-js](https://github.com/eugeneware/jpeg-js) (BSD-3-Clause). Both run locally on the device.
 - iOS is configured only incidentally; the target is Android.
 - All data is local to one device. Sharing exports text, not a sync service.
